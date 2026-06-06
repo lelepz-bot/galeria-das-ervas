@@ -143,6 +143,7 @@ function ensureSetup_() {
   const props = PropertiesService.getScriptProperties();
   if (props.getProperty('SPREADSHEET_ID')) {
     const ss = SpreadsheetApp.openById(props.getProperty('SPREADSHEET_ID'));
+    moveFileToRootFolder_(ss.getId());
     ensureSheets_(ss);
     getImageFolder_();
     return;
@@ -165,14 +166,26 @@ function getRootFolder_() {
 
 function moveFileToRootFolder_(fileId) {
   const file = DriveApp.getFileById(fileId);
+  moveDriveItemToRootFolder_(file);
+}
+
+function moveDriveItemToRootFolder_(item) {
   const root = getRootFolder_();
-  file.moveTo(root);
+  const parents = item.getParents();
+  while (parents.hasNext()) {
+    if (parents.next().getId() === root.getId()) return;
+  }
+  item.moveTo(root);
 }
 
 function getImageFolder_() {
   const props = PropertiesService.getScriptProperties();
   const existing = props.getProperty('IMAGE_FOLDER_ID');
-  if (existing) return DriveApp.getFolderById(existing);
+  if (existing) {
+    const folder = DriveApp.getFolderById(existing);
+    moveDriveItemToRootFolder_(folder);
+    return folder;
+  }
   const root = getRootFolder_();
   const matches = root.getFoldersByName(APP.imageFolderName);
   const folder = matches.hasNext() ? matches.next() : root.createFolder(APP.imageFolderName);
