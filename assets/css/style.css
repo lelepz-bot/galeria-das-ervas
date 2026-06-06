@@ -4,7 +4,14 @@
 @media(max-width:850px){.top{padding:20px 0}.top-inner{text-align:center}.logo{margin:auto;width:180px}.quick .quick-item{justify-content:center;margin:14px 0}.social{justify-content:center!important;margin-top:12px}.nav{margin:0 -22px;box-shadow:none}.nav .cta{white-space:nowrap}.hero{background-position:center bottom}}
 
 /* Ajustes finos solicitados */
-.nav a.active{color:var(--green);font-weight:800;background:#f1fff3}
+.nav a.active,
+body[data-page="home"] .nav a[href="index.html"],
+body[data-page="produtos"] .nav a[href="produtos.html"],
+body[data-page="produto"] .nav a[href="produtos.html"],
+body[data-page="sobre"] .nav a[href="sobre.html"],
+body[data-page="blog"] .nav a[href="blog.html"],
+body[data-page="artigo"] .nav a[href="blog.html"],
+body[data-page="contato"] .nav a[href="contato.html"]{color:var(--green);font-weight:800;background:#f1fff3}
 .nav a.cta.active{background:var(--green);color:#fff!important}
 .post-card{grid-template-columns:170px 1fr;align-items:stretch;min-height:210px}
 .post-card img{width:170px;height:100%;min-height:210px;object-fit:cover;display:block}
@@ -157,7 +164,14 @@
   .nav{display:none;margin:0 18px 14px;transform:none;max-width:none;border-radius:22px;padding:10px;background:#fff;box-shadow:0 18px 38px rgba(20,70,30,.14);overflow:hidden;flex-direction:column;align-items:stretch;justify-content:flex-start}
   body.menu-open .nav{display:flex;animation:mobileMenuIn .28s ease both}
   .nav a{display:block;width:100%;padding:14px 16px;border-radius:14px;font-size:14px;text-align:left}
-  .nav a.active{background:#effdf1}
+  .nav a.active,
+  body[data-page="home"] .nav a[href="index.html"],
+  body[data-page="produtos"] .nav a[href="produtos.html"],
+  body[data-page="produto"] .nav a[href="produtos.html"],
+  body[data-page="sobre"] .nav a[href="sobre.html"],
+  body[data-page="blog"] .nav a[href="blog.html"],
+  body[data-page="artigo"] .nav a[href="blog.html"],
+  body[data-page="contato"] .nav a[href="contato.html"]{background:#effdf1}
   .nav .cta{margin:8px 0 0;padding:15px 18px;text-align:center;border-radius:18px;background:var(--green);color:#fff!important}
   .hero{margin-top:0}
 }
@@ -178,7 +192,14 @@
   .nav{display:none;margin:0 14px 14px;transform:none;max-width:none;border-radius:22px;padding:12px;background:#fff;box-shadow:0 18px 38px rgba(20,70,30,.14);overflow:hidden;flex-direction:column;align-items:stretch;justify-content:flex-start}
   body.menu-open .nav{display:flex;animation:mobileMenuIn .28s ease both}
   .nav a{display:block;width:100%;padding:14px 16px;border-radius:14px;font-size:14px;text-align:left}
-  .nav a.active{background:#effdf1;color:var(--green);font-weight:800}
+  .nav a.active,
+  body[data-page="home"] .nav a[href="index.html"],
+  body[data-page="produtos"] .nav a[href="produtos.html"],
+  body[data-page="produto"] .nav a[href="produtos.html"],
+  body[data-page="sobre"] .nav a[href="sobre.html"],
+  body[data-page="blog"] .nav a[href="blog.html"],
+  body[data-page="artigo"] .nav a[href="blog.html"],
+  body[data-page="contato"] .nav a[href="contato.html"]{background:#effdf1;color:var(--green);font-weight:800}
   .nav .cta{display:none!important}
   .mobile-menu-info{display:grid;gap:8px;border-top:1px solid var(--line);margin-top:10px;padding:12px 4px 4px;color:var(--muted);font-size:13px}
   .mobile-menu-info a,.mobile-menu-info span{display:block;padding:10px 12px;border-radius:12px;background:#f8fbf1;color:#32402f;font-weight:600}
@@ -194,7 +215,10 @@
 .contact-actions .btn{display:block;text-align:center;border-radius:18px;padding:16px 20px}
 .contact-info-card{background:#fff;border:1px solid var(--line);border-radius:20px;box-shadow:var(--shadow);padding:28px}
 .contact-info-card p{font-size:17px;color:var(--muted);line-height:1.55}
-.contact-map-preview{min-height:280px;border-radius:20px;background:linear-gradient(rgba(24,184,52,.72),rgba(24,184,52,.72)),url('../img/site/fundo-ervas-real.png') center/cover;display:grid;place-items:center;color:#fff;text-align:center;padding:28px;box-shadow:var(--shadow)}
+.contact-map-preview{min-height:280px;border-radius:20px;position:relative;overflow:hidden;display:grid;place-items:center;color:#fff;text-align:center;padding:28px;box-shadow:var(--shadow);background:#eaf4e5}
+.contact-map-preview iframe{position:absolute;inset:0;width:100%;height:100%;border:0;filter:saturate(.9) contrast(.98)}
+.contact-map-preview:before{content:"";position:absolute;inset:0;background:linear-gradient(90deg,rgba(20,130,43,.84),rgba(20,130,43,.38));z-index:1;pointer-events:none}
+.contact-map-preview>div{position:relative;z-index:2;max-width:470px;text-shadow:0 2px 16px rgba(0,0,0,.18)}
 .contact-map-preview h3{font-size:28px;margin:0 0 8px}.contact-map-preview p{max-width:430px;margin:0 auto 18px}
 @media(max-width:850px){
   .newsletter{display:block!important;padding:26px 20px;border-radius:24px;text-align:left;overflow:hidden}
@@ -216,3 +240,107 @@
 
 /* v13 - remove marcadores decorativos com estrela */
 .title:after{content:""!important;display:block!important;width:46px!important;height:4px!important;line-height:0!important;border-radius:999px!important;margin:16px auto 0!important;background:var(--green)!important;color:transparent!important}
+
+/* v14 - mapa interativo direto do Google Maps */
+.contact-map-preview{min-height:420px;padding:0;background:#eaf4e5;display:block}
+.contact-map-preview:before{display:none}
+.contact-map-preview iframe{position:absolute;inset:0;width:100%;height:100%;border:0;filter:none;z-index:1}
+@media(max-width:850px){.contact-map-preview{min-height:320px}}
+
+/* v15 - aviso de compra via WhatsApp e ícones sociais com cara de marca */
+.product-flow-note{
+  max-width:760px;
+  margin:16px auto 0;
+  padding:18px 20px;
+  border:1px solid #b9ddb0;
+  border-radius:12px;
+  background:#fff;
+  color:#354432;
+  line-height:1.6;
+  font-size:15px;
+  box-shadow:0 12px 30px rgba(20,70,30,.08);
+}
+.product-flow-note b{color:var(--green)}
+.social a.js-instagram,.social a.js-facebook,.social a.js-whats,.social a.js-x-twitter,
+.footer-social a.js-instagram,.footer-social a.js-facebook,.footer-social a.js-whats{
+  position:relative;
+  overflow:hidden;
+  color:transparent!important;
+  font-size:0!important;
+}
+.social a.js-instagram,.footer-social a.js-instagram{background:radial-gradient(circle at 30% 110%,#feda75 0 22%,#fa7e1e 36%,#d62976 58%,#962fbf 78%,#4f5bd5 100%)!important}
+.social a.js-facebook,.footer-social a.js-facebook{background:#1877f2!important}
+.social a.js-whats,.footer-social a.js-whats{background:#25d366!important}
+.social a.js-x-twitter{background:#111!important}
+.social a.js-instagram:before,.footer-social a.js-instagram:before{
+  content:"";
+  width:54%;
+  height:54%;
+  border:2px solid #fff;
+  border-radius:32%;
+  position:absolute;
+  left:50%;
+  top:50%;
+  transform:translate(-50%,-50%);
+}
+.social a.js-instagram:after,.footer-social a.js-instagram:after{
+  content:"";
+  width:15%;
+  height:15%;
+  border-radius:50%;
+  background:#fff;
+  position:absolute;
+  right:22%;
+  top:22%;
+  box-shadow:-9px 9px 0 -5px #fff;
+}
+.social a.js-facebook:before,.footer-social a.js-facebook:before{
+  content:"f";
+  color:#fff;
+  font-family:Arial,sans-serif;
+  font-weight:900;
+  font-size:19px;
+  line-height:1;
+  position:absolute;
+  left:50%;
+  top:54%;
+  transform:translate(-50%,-50%);
+}
+.social a.js-whats:before,.footer-social a.js-whats:before{
+  content:"";
+  width:58%;
+  height:58%;
+  border:2px solid #fff;
+  border-radius:50%;
+  position:absolute;
+  left:50%;
+  top:47%;
+  transform:translate(-50%,-50%);
+  box-shadow:-7px 8px 0 -5px #fff;
+}
+.social a.js-whats:after,.footer-social a.js-whats:after{
+  content:"☎";
+  color:#fff;
+  font-family:Arial,sans-serif;
+  font-size:13px;
+  font-weight:900;
+  line-height:1;
+  position:absolute;
+  left:50%;
+  top:50%;
+  transform:translate(-50%,-50%) rotate(12deg);
+}
+.social a.js-x-twitter:before{
+  content:"X";
+  color:#fff;
+  font-size:14px;
+  font-weight:900;
+  position:absolute;
+  left:50%;
+  top:50%;
+  transform:translate(-50%,-50%);
+}
+@media(max-width:850px){
+  .product-flow-note{font-size:14px;padding:14px 15px;border-radius:16px}
+  .social a.js-facebook:before,.footer-social a.js-facebook:before{font-size:20px}
+}

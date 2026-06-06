@@ -17,11 +17,14 @@ const APP = {
     testimonials: 'depoimentos'
   }
 };
+const PUBLIC_CACHE_KEY = 'publicData:v1';
 
 function doGet(e) {
   ensureSetup_();
   const action = e && e.parameter && e.parameter.action;
   if (action === 'publicData') return publicData_(e);
+  const auth = adminAccess_();
+  if (!auth.ok) return unauthorizedPage_(auth);
   return HtmlService.createTemplateFromFile('Index')
     .evaluate()
     .setTitle('Painel | Galeria das Ervas')
@@ -45,9 +48,18 @@ function publicData_(e) {
 }
 
 function getPublicData() {
+  const cache = CacheService.getScriptCache();
+  const cached = cache.get(PUBLIC_CACHE_KEY);
+  if (cached) {
+    try {
+      return JSON.parse(cached);
+    } catch (err) {
+      cache.remove(PUBLIC_CACHE_KEY);
+    }
+  }
   const ss = getDb_();
   const settings = settingsObject_(readRows_(ss.getSheetByName(APP.sheets.settings)));
-  return {
+  const data = {
     ok: true,
     settings,
     categories: readRows_(ss.getSheetByName(APP.sheets.categories)).filter(r => bool_(r.active)).sort((a,b)=>(Number(a.order)||999)-(Number(b.order)||999)),
@@ -55,12 +67,18 @@ function getPublicData() {
     posts: readRows_(ss.getSheetByName(APP.sheets.posts)).filter(r => bool_(r.published)),
     testimonials: readRows_(ss.getSheetByName(APP.sheets.testimonials)).filter(r => bool_(r.active))
   };
+  try {
+    cache.put(PUBLIC_CACHE_KEY, JSON.stringify(data), 300);
+  } catch (err) {}
+  return data;
 }
 
 function getAdminData() {
+  const access = adminGuard_();
   const ss = getDb_();
   return {
     ok: true,
+    adminAccess: access,
     spreadsheetUrl: ss.getUrl(),
     folderUrl: getImageFolder_().getUrl(),
     settingsRows: readRows_(ss.getSheetByName(APP.sheets.settings)),
@@ -73,6 +91,7 @@ function getAdminData() {
 }
 
 function saveSettings(rows) {
+  adminGuard_();
   const sh = getDb_().getSheetByName(APP.sheets.settings);
   const header = ['key','label','value','type','help','active'];
   sh.clearContents();
@@ -81,18 +100,20 @@ function saveSettings(rows) {
     .map(r => [r.key || '', r.label || '', r.value || '', r.type || 'text', r.help || '', r.active === false ? false : true])
     .filter(r => r[0]);
   if (clean.length) sh.getRange(2,1,clean.length,header.length).setValues(clean);
+  clearPublicCache_();
   return {ok:true};
 }
 
-function saveProduct(item) { return upsert_('products', item, productHeader_()); }
-function savePost(item) { return upsert_('posts', item, postHeader_()); }
-function saveTestimonial(item) { return upsert_('testimonials', item, testimonialHeader_()); }
-function saveCategory(item) { return upsert_('categories', item, categoryHeader_()); }
-function deleteProduct(id) { return setActive_('products', id, false); }
-function deletePost(id) { return setActive_('posts', id, false, 'published'); }
-function deleteTestimonial(id) { return setActive_('testimonials', id, false); }
+function saveProduct(item) { adminGuard_(); return upsert_('products', item, productHeader_()); }
+function savePost(item) { adminGuard_(); return upsert_('posts', item, postHeader_()); }
+function saveTestimonial(item) { adminGuard_(); return upsert_('testimonials', item, testimonialHeader_()); }
+function saveCategory(item) { adminGuard_(); return upsert_('categories', item, categoryHeader_()); }
+function deleteProduct(id) { adminGuard_(); return setActive_('products', id, false); }
+function deletePost(id) { adminGuard_(); return setActive_('posts', id, false, 'published'); }
+function deleteTestimonial(id) { adminGuard_(); return setActive_('testimonials', id, false); }
 
 function uploadImage(fileObj) {
+  adminGuard_();
   if (!fileObj || !fileObj.data || !fileObj.name) throw new Error('Arquivo inválido.');
   const folder = getImageFolder_();
   const bytes = Utilities.base64Decode(fileObj.data.split(',').pop());
@@ -123,6 +144,7 @@ function upsert_(type, item, header) {
   const values = header.map(h => rowObj[h]);
   if (idx >= 0) sh.getRange(idx + 2, 1, 1, header.length).setValues([values]);
   else sh.appendRow(values);
+  clearPublicCache_();
   return {ok:true, id:item.id};
 }
 
@@ -136,7 +158,12 @@ function setActive_(type, id, value, field) {
   const ids = sh.getRange(2,idCol,Math.max(sh.getLastRow()-1,0),1).getValues().flat();
   const pos = ids.findIndex(x => String(x) === String(id));
   if (pos >= 0) sh.getRange(pos+2, fieldCol).setValue(value);
+  clearPublicCache_();
   return {ok:true};
+}
+
+function clearPublicCache_() {
+  CacheService.getScriptCache().remove(PUBLIC_CACHE_KEY);
 }
 
 function ensureSetup_() {
@@ -145,6 +172,7 @@ function ensureSetup_() {
     const ss = SpreadsheetApp.openById(props.getProperty('SPREADSHEET_ID'));
     moveFileToRootFolder_(ss.getId());
     ensureSheets_(ss);
+    ensureDefaultSettings_(ss);
     getImageFolder_();
     return;
   }
@@ -152,6 +180,7 @@ function ensureSetup_() {
   moveFileToRootFolder_(ss.getId());
   props.setProperty('SPREADSHEET_ID', ss.getId());
   ensureSheets_(ss, true);
+  ensureDefaultSettings_(ss);
   getImageFolder_();
 }
 
@@ -232,6 +261,48 @@ function ensureHeaderColumns_(sh, header) {
   sh.autoResizeColumns(1, header.length);
 }
 
+function ensureDefaultSettings_(ss) {
+  const sh = ss.getSheetByName(APP.sheets.settings);
+  const rows = readRows_(sh);
+  const existing = rows.map(r => String(r.key));
+  const defaults = seedSettings_().filter(r => !existing.includes(r[0]));
+  if (defaults.length) sh.getRange(sh.getLastRow() + 1, 1, defaults.length, defaults[0].length).setValues(defaults);
+}
+
+function defaultAdminEmails_() {
+  return '';
+}
+
+function currentAdminEmail_() {
+  return '';
+}
+
+function allowedAdminEmails_() {
+  const rows = readRows_(getDb_().getSheetByName(APP.sheets.settings));
+  const settings = settingsObject_(rows);
+  return String(settings.allowed_admin_emails || '')
+    .split(/[,\n; ]+/)
+    .map(s => s.trim().toLowerCase())
+    .filter(Boolean);
+}
+
+function adminAccess_() {
+  return {ok: true, email: ''};
+}
+
+function adminGuard_() {
+  const access = adminAccess_();
+  if (!access.ok) throw new Error(access.message);
+  return access;
+}
+
+function unauthorizedPage_(auth) {
+  const safeTitle = String(auth.title || 'Acesso bloqueado').replace(/[<>&"]/g, '');
+  const safeMessage = String(auth.message || 'Você não tem acesso a este painel.').replace(/[<>&"]/g, '');
+  return HtmlService.createHtmlOutput(`<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${safeTitle}</title><style>body{margin:0;font-family:Arial,sans-serif;background:#f7fae9;color:#1d261d;display:grid;min-height:100vh;place-items:center;padding:24px}.box{max-width:560px;background:#fff;border:1px solid #e8eadf;border-radius:18px;box-shadow:0 18px 48px rgba(20,70,30,.14);padding:28px}h1{margin:0 0 10px;color:#0f7f25;font-size:28px}p{line-height:1.55;color:#687267}</style></head><body><main class="box"><h1>${safeTitle}</h1><p>${safeMessage}</p></main></body></html>`)
+    .setTitle(safeTitle);
+}
+
 function readRows_(sh) {
   if (!sh || sh.getLastRow() < 2) return [];
   const values = sh.getDataRange().getValues();
@@ -259,6 +330,7 @@ function postHeader_(){ return ['id','title','excerpt','body','cover_url','publi
 function testimonialHeader_(){ return ['id','name','text','photo_url','rating','active','order']; }
 
 function seedSettings_(){ return [
+ ['allowed_admin_emails','E-mails autorizados no painel','','text','Separe por vírgula. Ex.: voce@gmail.com, cliente@gmail.com',true],
  ['whatsapp','WhatsApp principal','5541995876768','whatsapp','Usado nos botões do site',true],
  ['telefone_fixo','Telefone fixo','','text','Opcional',false],
  ['email','E-mail','contato@galeriadaservas.com.br','email','Aparece no rodapé e contato',true],
