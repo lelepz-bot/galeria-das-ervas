@@ -1,10 +1,10 @@
 window.FALLBACK = {
  settings:{whatsapp:'5541995876768',email:'contato@galeriadaservas.com.br',endereco:'R. Ourizona, 2501 - Sítio Cercado, 81920-620 - Curitiba - PR',instagram:'https://instagram.com/galeriadaservas',logo_url:'assets/img/site/logo.png',hero_url:'assets/img/site/hero-ervas.png'},
  categories:[
-  {id:'ervas-medicinais',name:'Ervas medicinais',description:'Tratamento natural que equilibra corpo e mente.'},
-  {id:'chas-naturais',name:'Chás naturais',description:'Bebidas saudáveis com aromas e benefícios terapêuticos.'},
-  {id:'alimentos-funcionais',name:'Alimentos funcionais',description:'Nutrição inteligente para sua rotina.'},
-  {id:'especiarias-temperos',name:'Especiarias e temperos',description:'Sabor marcante com propriedades naturais.'}
+  {id:'ervas-medicinais',name:'Ervas medicinais',description:'Tratamento natural que equilibra corpo e mente.',image_url:'assets/img/icones/ervas-medicinais.png'},
+  {id:'chas-naturais',name:'Chás naturais',description:'Bebidas saudáveis com aromas e benefícios terapêuticos.',image_url:'assets/img/icones/chas-naturais.png'},
+  {id:'alimentos-funcionais',name:'Alimentos funcionais',description:'Nutrição inteligente para sua rotina.',image_url:'assets/img/icones/alimentos-funcionais.png'},
+  {id:'especiarias-temperos',name:'Especiarias e temperos',description:'Sabor marcante com propriedades naturais.',image_url:'assets/img/icones/especiarias-temperos.png'}
  ],
  products:[
   {id:'camomila',name:'Camomila',category:'chas-naturais',description:'Flor de camomila selecionada para infusões suaves e aromáticas.',benefits:'Aroma delicado; uso tradicional; ótimo para chás noturnos.',image_url:'assets/img/produtos/camomila.jpg',featured:true,active:true},

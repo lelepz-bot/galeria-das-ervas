@@ -50,7 +50,7 @@ function getPublicData() {
   return {
     ok: true,
     settings,
-    categories: readRows_(ss.getSheetByName(APP.sheets.categories)).filter(r => bool_(r.active)),
+    categories: readRows_(ss.getSheetByName(APP.sheets.categories)).filter(r => bool_(r.active)).sort((a,b)=>(Number(a.order)||999)-(Number(b.order)||999)),
     products: readRows_(ss.getSheetByName(APP.sheets.products)).filter(r => bool_(r.active)).sort((a,b)=>(Number(a.order)||999)-(Number(b.order)||999)),
     posts: readRows_(ss.getSheetByName(APP.sheets.posts)).filter(r => bool_(r.published)),
     testimonials: readRows_(ss.getSheetByName(APP.sheets.testimonials)).filter(r => bool_(r.active))
@@ -65,7 +65,7 @@ function getAdminData() {
     folderUrl: getImageFolder_().getUrl(),
     settingsRows: readRows_(ss.getSheetByName(APP.sheets.settings)),
     settings: settingsObject_(readRows_(ss.getSheetByName(APP.sheets.settings))),
-    categories: readRows_(ss.getSheetByName(APP.sheets.categories)),
+    categories: readRows_(ss.getSheetByName(APP.sheets.categories)).sort((a,b)=>(Number(a.order)||999)-(Number(b.order)||999)),
     products: readRows_(ss.getSheetByName(APP.sheets.products)),
     posts: readRows_(ss.getSheetByName(APP.sheets.posts)),
     testimonials: readRows_(ss.getSheetByName(APP.sheets.testimonials))
@@ -199,7 +199,24 @@ function setupSheet_(ss, name, header, rows, seed) {
     if (rows.length) sh.getRange(2,1,rows.length,header.length).setValues(rows);
     sh.setFrozenRows(1);
     sh.autoResizeColumns(1, header.length);
+  } else {
+    ensureHeaderColumns_(sh, header);
   }
+}
+
+function ensureHeaderColumns_(sh, header) {
+  const current = sh.getRange(1,1,1,Math.max(sh.getLastColumn(),1)).getValues()[0].map(String);
+  if (header.every((h,i) => current[i] === h)) return;
+  const data = sh.getLastRow() > 1 ? sh.getRange(2,1,sh.getLastRow()-1,sh.getLastColumn()).getValues() : [];
+  const reordered = data.map(row => header.map(h => {
+    const idx = current.indexOf(h);
+    return idx >= 0 ? row[idx] : '';
+  }));
+  sh.clearContents();
+  sh.getRange(1,1,1,header.length).setValues([header]);
+  if (reordered.length) sh.getRange(2,1,reordered.length,header.length).setValues(reordered);
+  sh.setFrozenRows(1);
+  sh.autoResizeColumns(1, header.length);
 }
 
 function readRows_(sh) {
@@ -224,7 +241,7 @@ function settingsObject_(rows) {
 function bool_(v) { return v === true || String(v).toLowerCase() === 'true' || String(v).toLowerCase() === 'sim' || String(v) === '1'; }
 function slug_(s) { return String(s).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,''); }
 function productHeader_(){ return ['id','name','category','description','benefits','image_url','featured','active','order']; }
-function categoryHeader_(){ return ['id','name','description','active','order']; }
+function categoryHeader_(){ return ['id','name','description','image_url','active','order']; }
 function postHeader_(){ return ['id','title','excerpt','body','cover_url','published','order']; }
 function testimonialHeader_(){ return ['id','name','text','photo_url','rating','active','order']; }
 
@@ -241,10 +258,10 @@ function seedSettings_(){ return [
  ['footer_text','Texto do rodapé','Mais de 300 opções naturais para sua saúde e bem-estar.','text','Texto institucional curto',true]
  ]; }
 function seedCategories_(){ return [
- ['ervas-medicinais','Ervas medicinais','Tratamento natural que equilibra corpo e mente.',true,1],
- ['chas-naturais','Chás naturais','Bebidas saudáveis com aromas e benefícios terapêuticos.',true,2],
- ['alimentos-funcionais','Alimentos funcionais','Nutrição inteligente para sua rotina.',true,3],
- ['especiarias-temperos','Especiarias e temperos','Sabor marcante com propriedades naturais.',true,4]
+ ['ervas-medicinais','Ervas medicinais','Tratamento natural que equilibra corpo e mente.','assets/img/icones/ervas-medicinais.png',true,1],
+ ['chas-naturais','Chás naturais','Bebidas saudáveis com aromas e benefícios terapêuticos.','assets/img/icones/chas-naturais.png',true,2],
+ ['alimentos-funcionais','Alimentos funcionais','Nutrição inteligente para sua rotina.','assets/img/icones/alimentos-funcionais.png',true,3],
+ ['especiarias-temperos','Especiarias e temperos','Sabor marcante com propriedades naturais.','assets/img/icones/especiarias-temperos.png',true,4]
  ]; }
 function seedProducts_(){ return [
  ['camomila','Camomila','chas-naturais','Flor de camomila selecionada para infusões suaves e aromáticas.','Aroma delicado; uso tradicional; ótimo para chás noturnos.','assets/img/produtos/camomila.jpg',true,true,1],
