@@ -52,10 +52,23 @@ function removeInterest(id){saveSelected(selectedIds().filter(x=>x!==id))}
 function updateInterestButtons(){let ids=selectedIds(); $$('[data-add-interest]').forEach(b=>{let added=ids.includes(b.dataset.addInterest); b.classList.toggle('added',added); b.textContent=added?'Adicionado à seleção':'Adicionar à seleção';})}
 function interestMessage(items){return `Olá!\n\nGostaria de informações sobre os seguintes produtos:\n\n${items.map(p=>'- '+p.name).join('\n')}\n\nPoderiam me orientar sobre disponibilidade e formas de compra?\n\nObrigado.`}
 function renderInterestBox(){let box=$('#interestBox'); if(!box) return; let items=selectedProducts(); box.classList.toggle('open',items.length>0); box.innerHTML=`<button class="interest-toggle" type="button">Minha seleção <strong>${items.length}</strong></button><div class="interest-panel"><p class="interest-note">Esta é uma lista de interesse, não é checkout. O atendimento continua pelo WhatsApp.</p>${items.length?`<ul>${items.map(p=>`<li><span>${p.name}</span><button type="button" data-remove-interest="${p.id}" aria-label="Remover ${p.name}">×</button></li>`).join('')}</ul><a class="btn" target="_blank" href="${waLink(interestMessage(items))}">Solicitar atendimento</a>`:'<p>Nenhum produto selecionado ainda.</p>'}</div>`; $$('[data-remove-interest]',box).forEach(b=>b.onclick=()=>removeInterest(b.dataset.removeInterest)); $('.interest-toggle',box).onclick=()=>box.classList.toggle('expanded')}
-function setupInterest(){if(!$('#interestBox')){let div=document.createElement('div');div.id='interestBox';div.className='interest-box';document.body.appendChild(div)} renderInterestBox(); document.addEventListener('click',e=>{let b=e.target.closest('[data-add-interest]'); if(b){e.preventDefault(); addInterest(b.dataset.addInterest)}})}
+function setupInterest(){if(!settingOn('whatsapp')) return; if(!$('#interestBox')){let div=document.createElement('div');div.id='interestBox';div.className='interest-box';document.body.appendChild(div)} renderInterestBox(); document.addEventListener('click',e=>{let b=e.target.closest('[data-add-interest]'); if(b){e.preventDefault(); addInterest(b.dataset.addInterest)}})}
 
 function settingOn(key){ return DATA.settings[key + '_active'] !== false && String(DATA.settings[key + '_active']).toLowerCase() !== 'false'; }
 function applyVisibility(selector, key){ $$(selector).forEach(el=>{ el.style.display = settingOn(key) ? '' : 'none'; }); }
+function applyWhatsVisibility(){
+ const visible=settingOn('whatsapp');
+ $$('.js-whats').forEach(el=>{
+  const box=el.closest('.quick-item')||el.closest('.footer-contact p')||el;
+  box.style.display=visible?'':'none';
+ });
+ $$('[data-add-interest],#interestBox').forEach(el=>{el.style.display=visible?'':'none'});
+}
+function refreshVisibility(){
+ applyVisibility('.setting-whatsapp','whatsapp'); applyVisibility('.setting-email','email'); applyVisibility('.setting-endereco','endereco');
+ applyVisibility('.setting-instagram','instagram'); applyVisibility('.setting-facebook','facebook'); applyVisibility('.setting-x-twitter','x_twitter');
+ applyWhatsVisibility();
+}
 function setBase(){
  const endereco=DATA.settings.endereco||'R. Ourizona, 2501 - Sítio Cercado, 81920-620 - Curitiba - PR';
  const maps='https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(endereco);
@@ -67,8 +80,7 @@ function setBase(){
  $$('.js-instagram').forEach(a=>{let v=asText(DATA.settings.instagram);a.href=v.startsWith('http')?v:'#';});
  $$('.js-facebook').forEach(a=>{let v=asText(DATA.settings.facebook);a.href=v.startsWith('http')?v:'#';});
  $$('.js-x-twitter').forEach(a=>{let v=asText(DATA.settings.x_twitter);a.href=v.startsWith('http')?v:'#';});
- applyVisibility('.setting-whatsapp','whatsapp'); applyVisibility('.setting-email','email'); applyVisibility('.setting-endereco','endereco');
- applyVisibility('.setting-instagram','instagram'); applyVisibility('.setting-facebook','facebook'); applyVisibility('.setting-x-twitter','x_twitter');
+ refreshVisibility();
  markActiveMenu();
 }
 function markActiveMenu(){let file=location.pathname.split('/').pop()||'index.html'; if(file==='produto.html')file='produtos.html'; if(file==='artigo.html')file='blog.html'; $$('.nav a[href]').forEach(a=>{if(a.getAttribute('href')===file)a.classList.add('active')})}
@@ -128,10 +140,10 @@ function cardPost(p){return `<article class="card post-card"><img src="${p.cover
 async function boot(){await loadData(); setBase(); setupInterest(); const page=document.body.dataset.page;
  if(page==='home'){ $('.hero').style.backgroundImage=`linear-gradient(90deg,rgba(21,115,50,.65),rgba(21,115,50,.2)),url('${DATA.settings.hero_url||'assets/img/site/hero-ervas.png'}')`; $('#featured').innerHTML=featuredProducts().map(cardProduct).join(''); $('#categories').innerHTML=DATA.categories.map(c=>`<article class="category"><img class="category-icon" src="${categoryIcon(c.id)}" alt=""><h3>${c.name}</h3><p>${c.description||''}</p></article>`).join(''); $('#posts').innerHTML=DATA.posts.slice(0,3).map(cardPost).join(''); $('#testimonials').innerHTML=DATA.testimonials.slice(0,3).map(t=>`<article class="card testimonial"><img src="${t.photo_url||'assets/img/site/logo.png'}" alt="${t.name}" onerror="this.onerror=null;this.src='assets/img/site/logo.png'"><h3>${t.name}</h3><p>${t.text}</p><strong>${t.rating||5}/5</strong></article>`).join('');}
  if(page==='produtos'){ $('#filters').innerHTML='<button data-cat="all" class="active">Todos</button>'+DATA.categories.map(c=>`<button data-cat="${c.id}">${c.name}</button>`).join(''); const render=cat=>{ $('#products').innerHTML=DATA.products.filter(p=>cat==='all'||p.category===cat).map(cardProduct).join(''); revealDynamic($('#products')); }; render('all'); $$('#filters button').forEach(b=>b.onclick=()=>{$$('#filters button').forEach(x=>x.classList.remove('active'));b.classList.add('active');render(b.dataset.cat)});}
- if(page==='produto'){let id=new URLSearchParams(location.search).get('id')||DATA.products[0].id, p=DATA.products.find(x=>x.id===id)||DATA.products[0]; document.title=p.name+' | Galeria das Ervas'; $('#productDetail').innerHTML=`<img src="${productImage(p)}" data-product-id="${p.id}" alt="${p.name}" onerror="handleImageError(this)"><div><span class="pill">${categoryName(p.category)}</span><h1>${p.name}</h1><p>${p.description||''}</p><h3>Características</h3><p>${p.benefits||'Produto natural selecionado com cuidado.'}</p><div class="detail-actions"><a class="btn" href="${waLink(`Olá!\n\nTenho interesse no produto:\n\n- ${p.name}\n\nGostaria de mais informações sobre disponibilidade, utilização e formas de compra.\n\nObrigado.`)}" target="_blank">Tenho interesse neste produto</a><button class="btn outline" type="button" data-add-interest="${p.id}">Adicionar à minha seleção</button></div></div>`; let rel=DATA.products.filter(x=>x.category===p.category&&x.id!==p.id); if(rel.length<4){rel=[...rel,...DATA.products.filter(x=>x.id!==p.id&&!rel.find(r=>r.id===x.id))]}; $('#related').innerHTML=rel.slice(0,4).map(cardProduct).join('');}
+ if(page==='produto'){let id=new URLSearchParams(location.search).get('id')||DATA.products[0].id, p=DATA.products.find(x=>x.id===id)||DATA.products[0]; document.title=p.name+' | Galeria das Ervas'; $('#productDetail').innerHTML=`<img src="${productImage(p)}" data-product-id="${p.id}" alt="${p.name}" onerror="handleImageError(this)"><div><span class="pill">${categoryName(p.category)}</span><h1>${p.name}</h1><p>${p.description||''}</p><h3>Características</h3><p>${p.benefits||'Produto natural selecionado com cuidado.'}</p><div class="detail-actions"><a class="btn js-whats setting-whatsapp" href="${waLink(`Olá!\n\nTenho interesse no produto:\n\n- ${p.name}\n\nGostaria de mais informações sobre disponibilidade, utilização e formas de compra.\n\nObrigado.`)}" target="_blank">Tenho interesse neste produto</a><button class="btn outline" type="button" data-add-interest="${p.id}">Adicionar à minha seleção</button></div></div>`; let rel=DATA.products.filter(x=>x.category===p.category&&x.id!==p.id); if(rel.length<4){rel=[...rel,...DATA.products.filter(x=>x.id!==p.id&&!rel.find(r=>r.id===x.id))]}; $('#related').innerHTML=rel.slice(0,4).map(cardProduct).join('');}
  if(page==='blog'){ $('#postsList').innerHTML=DATA.posts.map(cardPost).join('');}
  if(page==='artigo'){let id=new URLSearchParams(location.search).get('id')||DATA.posts[0].id, p=DATA.posts.find(x=>x.id===id)||DATA.posts[0]; document.title=p.title+' | Galeria das Ervas'; $('#article').innerHTML=`<img class="article-cover" src="${p.cover_url||'assets/img/site/hero-ervas.png'}" alt="${p.title}" onerror="this.onerror=null;this.src='assets/img/site/hero-ervas.png'"><h1>${p.title}</h1><p class="lead">${p.excerpt||''}</p><div class="article-body">${formatArticleBody(p.body||'')}</div>`;}
- addEntrance(); updateInterestButtons(); renderInterestBox();
+ refreshVisibility(); addEntrance(); updateInterestButtons(); renderInterestBox();
 }
 document.addEventListener('DOMContentLoaded',boot);
 
