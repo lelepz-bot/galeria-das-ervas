@@ -14,7 +14,8 @@ const APP = {
     categories: 'categorias',
     products: 'produtos',
     posts: 'blog',
-    testimonials: 'depoimentos'
+    testimonials: 'depoimentos',
+    subscriptions: 'inscricoes'
   }
 };
 const PUBLIC_CACHE_KEY = 'publicData:v1';
@@ -23,6 +24,7 @@ function doGet(e) {
   ensureSetup_();
   const action = e && e.parameter && e.parameter.action;
   if (action === 'publicData') return publicData_(e);
+  if (action === 'subscribe') return subscribe_(e);
   const auth = adminAccess_();
   if (!auth.ok) return unauthorizedPage_(auth);
   return HtmlService.createTemplateFromFile('Index')
@@ -86,8 +88,45 @@ function getAdminData() {
     categories: readRows_(ss.getSheetByName(APP.sheets.categories)).sort((a,b)=>(Number(a.order)||999)-(Number(b.order)||999)),
     products: readRows_(ss.getSheetByName(APP.sheets.products)),
     posts: readRows_(ss.getSheetByName(APP.sheets.posts)),
-    testimonials: readRows_(ss.getSheetByName(APP.sheets.testimonials))
+    testimonials: readRows_(ss.getSheetByName(APP.sheets.testimonials)),
+    subscriptions: readRows_(ss.getSheetByName(APP.sheets.subscriptions)).sort((a,b)=>new Date(b.created_at)-new Date(a.created_at))
   };
+}
+
+function subscribe_(e) {
+  const callback = e && e.parameter && e.parameter.callback || '';
+  const email = String(e && e.parameter && e.parameter.email || '').trim().toLowerCase();
+  const source = String(e && e.parameter && e.parameter.source || 'newsletter').trim() || 'newsletter';
+  let payload;
+  try {
+    payload = saveSubscription(email, source);
+  } catch (err) {
+    payload = {ok: false, message: err.message || String(err)};
+  }
+  const json = JSON.stringify(payload);
+  if (callback) {
+    return ContentService.createTextOutput(`${callback}(${json});`).setMimeType(ContentService.MimeType.JAVASCRIPT);
+  }
+  return ContentService.createTextOutput(json).setMimeType(ContentService.MimeType.JSON);
+}
+
+function saveSubscription(email, source) {
+  ensureSetup_();
+  email = String(email || '').trim().toLowerCase();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new Error('Informe um e-mail válido.');
+  const lock = LockService.getScriptLock();
+  lock.waitLock(10000);
+  try {
+    const sh = getDb_().getSheetByName(APP.sheets.subscriptions);
+    const rows = readRows_(sh);
+    const existing = rows.find(r => String(r.email || '').trim().toLowerCase() === email);
+    const now = new Date();
+    if (existing) return {ok: true, duplicate: true, message: 'E-mail já cadastrado.'};
+    sh.appendRow([Utilities.getUuid(), now, email, source, '']);
+    return {ok: true, duplicate: false, message: 'Inscrição cadastrada.'};
+  } finally {
+    lock.releaseLock();
+  }
 }
 
 function saveSettings(rows) {
@@ -228,6 +267,7 @@ function ensureSheets_(ss, seed) {
   setupSheet_(ss, APP.sheets.products, productHeader_(), seedProducts_(), seed);
   setupSheet_(ss, APP.sheets.posts, postHeader_(), seedPosts_(), seed);
   setupSheet_(ss, APP.sheets.testimonials, testimonialHeader_(), seedTestimonials_(), seed);
+  setupSheet_(ss, APP.sheets.subscriptions, subscriptionHeader_(), [], seed);
   const defaultSheet = ss.getSheetByName('Página1') || ss.getSheetByName('Sheet1');
   if (defaultSheet && ss.getSheets().length > 1) ss.deleteSheet(defaultSheet);
 }
@@ -328,18 +368,19 @@ function productHeader_(){ return ['id','name','category','description','benefit
 function categoryHeader_(){ return ['id','name','description','image_url','active','order']; }
 function postHeader_(){ return ['id','title','excerpt','body','cover_url','published','order']; }
 function testimonialHeader_(){ return ['id','name','text','photo_url','rating','active','order']; }
+function subscriptionHeader_(){ return ['id','created_at','email','source','notes']; }
 
 function seedSettings_(){ return [
- ['allowed_admin_emails','E-mails autorizados no painel','','text','Separe por vírgula. Ex.: voce@gmail.com, cliente@gmail.com',true],
- ['whatsapp','WhatsApp principal','5541995876768','whatsapp','Usado nos botões do site',true],
+ ['allowed_admin_emails','E-mails do ADM','','text','Controle interno do painel; não aparece no site público.',true],
+ ['whatsapp','WhatsApp principal','5541995876768','whatsapp','Usado nos botões do site. Se desativado, some dos atalhos públicos, mas continua disponível na seleção/cesta para iniciar conversa.',true],
  ['telefone_fixo','Telefone fixo','','text','Opcional',false],
- ['email','E-mail','contato@galeriadaservas.com.br','email','Aparece no rodapé e contato',true],
- ['endereco','Endereço','R. Ourizona, 2501 - Sítio Cercado, 81920-620 - Curitiba - PR','text','Usado no rodapé, contato e Maps',true],
- ['instagram','Instagram','https://instagram.com/galeriadaservas','url','Link completo do Instagram',true],
- ['facebook','Facebook','','url','Opcional',false],
- ['x_twitter','X / Twitter','','url','Opcional',false],
- ['logo_url','Logo','assets/img/site/logo.png','image','Pode usar imagem do Drive ou arquivo local',true],
- ['hero_url','Banner da Home','assets/img/site/hero-ervas.png','image','Imagem principal da Home',true],
+ ['email','E-mail','contato@galeriadaservas.com.br','email','Aparece no rodapé, contato e atalhos do site. Se desativado, some de todas as áreas públicas.',true],
+ ['endereco','Endereço','R. Ourizona, 2501 - Sítio Cercado, 81920-620 - Curitiba - PR','text','Usado no rodapé, contato e Maps. Se desativado, some de todo o site.',true],
+ ['instagram','Instagram','https://instagram.com/galeriadaservas','url','Link completo do Instagram. Se desativado, some dos atalhos públicos.',true],
+ ['facebook','Facebook','','url','Opcional. Se desativado, some dos atalhos públicos.',false],
+ ['x_twitter','X / Twitter','','url','Opcional. Se desativado, some dos atalhos públicos.',false],
+ ['logo_url','Logo','assets/img/site/logo.png','image','Pode usar imagem do Drive ou arquivo local. Se desativado, oculta a marca no site.',true],
+ ['hero_url','Banner da Home','assets/img/site/hero-ervas.png','image','Imagem principal da Home. Se desativado, a home usa o fallback padrão.',true],
  ['footer_text','Texto do rodapé','Mais de 300 opções naturais para sua saúde e bem-estar.','text','Texto institucional curto',true]
  ]; }
 function seedCategories_(){ return [

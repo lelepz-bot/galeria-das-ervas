@@ -3,15 +3,37 @@ const $=(s,r=document)=>r.querySelector(s), $$=(s,r=document)=>[...r.querySelect
 let DATA=structuredClone(window.FALLBACK);
 const DATA_CACHE_KEY='gde_public_data_v1';
 const DATA_CACHE_MAX_AGE=1000*60*60*12;
+const DATA_STALE_MAX_AGE=1000*60*60*24*7;
+const JSONP_TIMEOUT=6500;
 let interestSetupDone=false;
-function loadScriptData(){
+function cleanupJsonp(cb,s,timer){
+ clearTimeout(timer);
+ delete window[cb];
+ if(s&&s.parentNode) s.remove();
+}
+function loadScriptData(timeout=JSONP_TIMEOUT){
  return new Promise((resolve,reject)=>{
   const cb='gdeDataCallback_'+Date.now();
   const s=document.createElement('script');
   const sep=window.APPS_SCRIPT_URL.includes('?')?'&':'?';
-  window[cb]=(payload)=>{delete window[cb]; s.remove(); resolve(payload);};
-  s.onerror=()=>{delete window[cb]; s.remove(); reject(new Error('Falha ao carregar dados do Apps Script'));};
+  const timer=setTimeout(()=>{cleanupJsonp(cb,s,timer);reject(new Error('Tempo esgotado ao carregar dados.'));},timeout);
+  window[cb]=(payload)=>{cleanupJsonp(cb,s,timer); resolve(payload);};
+  s.onerror=()=>{cleanupJsonp(cb,s,timer); reject(new Error('Falha ao carregar dados do Apps Script'));};
   s.src=`${window.APPS_SCRIPT_URL}${sep}action=publicData&callback=${cb}`;
+  document.head.appendChild(s);
+ });
+}
+function callAppsScript(action,params={}){
+ return new Promise((resolve,reject)=>{
+  if(!cfgOk()) return reject(new Error('Apps Script nao configurado.'));
+  const cb='gdeCallback_'+Date.now()+'_'+Math.random().toString(36).slice(2);
+  const s=document.createElement('script');
+  const sep=window.APPS_SCRIPT_URL.includes('?')?'&':'?';
+  const qs=new URLSearchParams({...params,action,callback:cb});
+  const timer=setTimeout(()=>{cleanupJsonp(cb,s,timer);reject(new Error('Tempo esgotado. Tente novamente.'));},JSONP_TIMEOUT);
+  window[cb]=(payload)=>{cleanupJsonp(cb,s,timer); resolve(payload);};
+  s.onerror=()=>{cleanupJsonp(cb,s,timer); reject(new Error('Falha ao enviar.'));};
+  s.src=`${window.APPS_SCRIPT_URL}${sep}${qs.toString()}`;
   document.head.appendChild(s);
  });
 }
@@ -26,11 +48,12 @@ function mergeRemoteData(remote){
  };
  return true;
 }
-function readCachedData(){
+function readCachedData(allowStale=false){
  try{
   const cached=JSON.parse(localStorage.getItem(DATA_CACHE_KEY)||'null');
   if(!cached||!cached.data) return null;
-  if(Date.now()-(cached.savedAt||0)>DATA_CACHE_MAX_AGE) return null;
+  const maxAge=allowStale?DATA_STALE_MAX_AGE:DATA_CACHE_MAX_AGE;
+  if(Date.now()-(cached.savedAt||0)>maxAge) return null;
   return cached.data;
  }catch(e){return null}
 }
@@ -49,7 +72,7 @@ async function refreshDataInBackground(){
 }
 async function loadData(){
  if(!cfgOk()) return DATA;
- const cached=readCachedData();
+ const cached=readCachedData(true);
  if(cached&&mergeRemoteData(cached)){
   refreshDataInBackground();
   return DATA;
@@ -64,7 +87,8 @@ async function loadData(){
 }
 function categoryName(id){return DATA.categories.find(c=>c.id===id)?.name||id}
 function asText(v){return String(v??'')}
-function hasWhats(){return settingOn('whatsapp')&&asText(DATA.settings.whatsapp).replace(/\D/g,'').length>0}
+function hasWhatsNumber(){return asText(DATA.settings.whatsapp).replace(/\D/g,'').length>0}
+function hasWhats(){return settingOn('whatsapp')&&hasWhatsNumber()}
 function waLink(msg='Olá! Vim pelo site e gostaria de tirar uma dúvida.'){let n=asText(DATA.settings.whatsapp).replace(/\D/g,'');return n?`https://wa.me/${n}?text=${encodeURIComponent(msg)}`:'#'}
 const PRODUCT_IMAGE_MAP={
  'camomila':'assets/img/produtos/camomila.jpg','hibisco':'assets/img/produtos/hibisco.jpg','cha-verde':'assets/img/produtos/cha-verde.jpg','curcuma':'assets/img/produtos/curcuma.jpg','gengibre':'assets/img/produtos/gengibre.jpg','canela-em-pau':'assets/img/produtos/canela-em-pau.jpg','oregano':'assets/img/produtos/oregano.jpg','alecrim':'assets/img/produtos/alecrim.jpg','hortela':'assets/img/produtos/hortela.jpg','erva-doce':'assets/img/produtos/erva-doce.jpg','moringa-po':'assets/img/produtos/moringa-po.jpg','psyllium':'assets/img/produtos/psyllium.jpg','granola-integral':'assets/img/produtos/granola-integral.jpg','chia':'assets/img/produtos/chia.jpg','linhaça-dourada':'assets/img/produtos/linhaca-dourada.jpg','linhaca-dourada':'assets/img/produtos/linhaca-dourada.jpg','cha-relaxante':'assets/img/produtos/cha-relaxante.jpg'
@@ -87,22 +111,47 @@ function removeInterest(id){saveSelected(selectedIds().filter(x=>x!==id))}
 function updateInterestButtons(){let ids=selectedIds(); $$('[data-add-interest]').forEach(b=>{let added=ids.includes(b.dataset.addInterest); b.classList.toggle('added',added); b.textContent=added?'Adicionado à seleção':'Adicionar à seleção';})}
 function interestMessage(items){return `Olá!\n\nMontei uma lista de interesse pelo site:\n\n${items.map(p=>'- '+p.name).join('\n')}\n\nGostaria de conversar sobre disponibilidade, quantidade, formas de retirada e pagamento.\n\nObrigado.`}
 function renderInterestBox(){let box=$('#interestBox'); if(!box) return; let items=selectedProducts(); box.classList.toggle('open',items.length>0); box.innerHTML=`<button class="interest-toggle" type="button">Minha seleção <strong>${items.length}</strong></button><div class="interest-panel"><p class="interest-note">Esta é uma lista de interesse. Não é compra direta; tudo é combinado pelo WhatsApp.</p>${items.length?`<ul>${items.map(p=>`<li><span>${p.name}</span><button type="button" data-remove-interest="${p.id}" aria-label="Remover ${p.name}">×</button></li>`).join('')}</ul><a class="btn" target="_blank" href="${waLink(interestMessage(items))}">Conversar no WhatsApp</a>`:'<p>Nenhum produto selecionado ainda.</p>'}</div>`; $$('[data-remove-interest]',box).forEach(b=>b.onclick=()=>removeInterest(b.dataset.removeInterest)); $('.interest-toggle',box).onclick=()=>box.classList.toggle('expanded')}
-function setupInterest(){if(!hasWhats()) return; if(!$('#interestBox')){let div=document.createElement('div');div.id='interestBox';div.className='interest-box';document.body.appendChild(div)} renderInterestBox(); if(!interestSetupDone){document.addEventListener('click',e=>{let b=e.target.closest('[data-add-interest]'); if(b){e.preventDefault(); addInterest(b.dataset.addInterest)}}); interestSetupDone=true;}}
+function setupInterest(){if(!hasWhatsNumber()){const box=$('#interestBox'); if(box) box.remove(); return;} if(!$('#interestBox')){let div=document.createElement('div');div.id='interestBox';div.className='interest-box';document.body.appendChild(div)} renderInterestBox(); if(!interestSetupDone){document.addEventListener('click',e=>{let b=e.target.closest('[data-add-interest]'); if(b){e.preventDefault(); addInterest(b.dataset.addInterest)}}); interestSetupDone=true;}}
 
 function settingOn(key){ return DATA.settings[key + '_active'] !== false && String(DATA.settings[key + '_active']).toLowerCase() !== 'false'; }
 function applyVisibility(selector, key){ $$(selector).forEach(el=>{ el.style.display = settingOn(key) ? '' : 'none'; }); }
+function applyVisibilityWithFallback(selector, visible, opts={}){
+ $$(selector).forEach(el=>{
+  if(opts.skip && opts.skip.some(skip=>el.closest(skip))) return;
+  const target=opts.parent ? (el.closest(opts.parent) || el) : el;
+  target.style.display=visible?'':'none';
+ });
+}
 function applyWhatsVisibility(){
  const visible=hasWhats();
- $$('.js-whats').forEach(el=>{
-  const box=el.closest('.quick-item')||el.closest('.footer-contact p')||el;
-  box.style.display=visible?'':'none';
- });
- $$('[data-add-interest],#interestBox').forEach(el=>{el.style.display=visible?'':'none'});
+ applyVisibilityWithFallback('.js-whats', visible, {parent:'.quick-item,.footer-contact p,.contact-info-card p,.mobile-menu-info a,.social a,.footer-social a,.nav a', skip:['.detail-actions','#interestBox']});
+ applyVisibilityWithFallback('.setting-whatsapp', visible, {skip:['.detail-actions','#interestBox']});
+}
+function applyEmailVisibility(){
+ const visible=settingOn('email');
+ applyVisibility('.setting-email','email');
+ applyVisibilityWithFallback('.js-email', visible, {parent:'.quick-item,.footer-contact p,.contact-info-card p,.mobile-menu-info a'});
+}
+function applyAddressVisibility(){
+ const visible=settingOn('endereco');
+ applyVisibility('.setting-endereco','endereco');
+ applyVisibilityWithFallback('.js-endereco', visible, {parent:'.footer-contact p,.contact-info-card p'});
+ applyVisibilityWithFallback('.js-maps', visible);
+ applyVisibilityWithFallback('.js-map-frame', visible, {parent:'.contact-map-preview'});
+}
+function applySocialVisibility(){
+ applyVisibility('.setting-instagram','instagram');
+ applyVisibility('.setting-facebook','facebook');
+ applyVisibility('.setting-x-twitter','x_twitter');
+ applyVisibilityWithFallback('.js-instagram', settingOn('instagram'), {parent:'.social a,.footer-social a,.mobile-menu-info a'});
+ applyVisibilityWithFallback('.js-facebook', settingOn('facebook'), {parent:'.social a,.footer-social a,.mobile-menu-info a'});
+ applyVisibilityWithFallback('.js-x-twitter', settingOn('x_twitter'), {parent:'.social a,.footer-social a,.mobile-menu-info a'});
 }
 function refreshVisibility(){
- applyVisibility('.setting-whatsapp','whatsapp'); applyVisibility('.setting-email','email'); applyVisibility('.setting-endereco','endereco');
- applyVisibility('.setting-instagram','instagram'); applyVisibility('.setting-facebook','facebook'); applyVisibility('.setting-x-twitter','x_twitter');
  applyWhatsVisibility();
+ applyEmailVisibility();
+ applyAddressVisibility();
+ applySocialVisibility();
 }
 function setBase(){
  const endereco=DATA.settings.endereco||'R. Ourizona, 2501 - Sítio Cercado, 81920-620 - Curitiba - PR';
@@ -117,10 +166,63 @@ function setBase(){
  $$('.js-instagram').forEach(a=>{let v=asText(DATA.settings.instagram);a.href=v.startsWith('http')?v:'#';});
  $$('.js-facebook').forEach(a=>{let v=asText(DATA.settings.facebook);a.href=v.startsWith('http')?v:'#';});
  $$('.js-x-twitter').forEach(a=>{let v=asText(DATA.settings.x_twitter);a.href=v.startsWith('http')?v:'#';});
+ enhanceSocialIcons();
  refreshVisibility();
  markActiveMenu();
+ setupNewsletterForms();
 }
 function markActiveMenu(){let file=location.pathname.split('/').pop()||'index.html'; if(file==='produto.html')file='produtos.html'; if(file==='artigo.html')file='blog.html'; $$('.nav a[href]').forEach(a=>{a.classList.toggle('active',a.getAttribute('href')===file)})}
+
+const SOCIAL_ICONS={
+ instagram:'<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4.2" y="4.2" width="15.6" height="15.6" rx="4.7"></rect><circle cx="12" cy="12" r="3.8"></circle><circle class="dot" cx="16.9" cy="7.1" r="1.1"></circle></svg>',
+ facebook:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.2 8.1h2.1V4.7c-.4-.1-1.6-.2-3-.2-3 0-5 1.8-5 5.2v2.9H5v3.8h3.3V24h4.1v-7.6h3.2l.5-3.8h-3.7v-2.5c0-1.1.3-2 1.8-2Z"></path></svg>',
+ whatsapp:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.2a8.7 8.7 0 0 0-7.4 13.2L3.7 21l4.7-1.2A8.7 8.7 0 1 0 12 3.2Z"></path><path class="phone" d="M8.8 7.9c-.2-.5-.4-.5-.7-.5h-.6c-.2 0-.6.1-.9.4-.3.4-1.1 1.1-1.1 2.6 0 1.5 1.1 3 1.2 3.2.1.2 2.1 3.3 5.2 4.4 2.6 1 3.1.8 3.7.7.6-.1 1.8-.7 2-1.4.3-.7.3-1.3.2-1.4-.1-.1-.3-.2-.6-.4l-1.9-.9c-.3-.1-.5-.1-.7.2-.2.3-.8.9-1 1.1-.2.2-.4.2-.7.1-.3-.2-1.3-.5-2.5-1.5-.9-.8-1.5-1.8-1.7-2.1-.2-.3 0-.5.1-.7l.5-.6c.2-.2.2-.3.3-.5.1-.2.1-.4 0-.6l-.9-2.1Z"></path></svg>',
+ x:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.2 10.5 21.4 2h-1.7l-6.3 7.4L8.4 2H2.6l7.6 11.1L2.6 22h1.7l6.7-7.9 5.4 7.9h5.8l-8-11.5Zm-2.4 2.8-.8-1.1L4.9 3.3h2.6l4.9 7 .8 1.1 6.4 9.2H17l-5.2-7.3Z"></path></svg>'
+};
+function enhanceSocialIcons(){
+ const pairs=[['.social .js-instagram,.footer-social .js-instagram','instagram','Instagram'],['.social .js-facebook,.footer-social .js-facebook','facebook','Facebook'],['.social .js-whats,.footer-social .js-whats','whatsapp','WhatsApp'],['.social .js-x-twitter,.footer-social .js-x-twitter','x','X']];
+ pairs.forEach(([selector,key,label])=>{
+  $$(selector).forEach(a=>{
+   if(a.dataset.iconReady==='true') return;
+   a.innerHTML=SOCIAL_ICONS[key];
+   a.setAttribute('aria-label',label);
+   a.dataset.iconReady='true';
+  });
+ });
+}
+
+function setupNewsletterForms(){
+ $$('.newsletter form').forEach(form=>{
+  if(form.dataset.bound==='true') return;
+  form.dataset.bound='true';
+  const input=form.querySelector('input[type="email"],input');
+  const button=form.querySelector('button');
+  let msg=form.querySelector('.newsletter-msg');
+  if(!msg){msg=document.createElement('p');msg.className='newsletter-msg';form.appendChild(msg)}
+  form.addEventListener('submit',e=>e.preventDefault());
+  if(button) button.type='submit';
+  if(input) input.setAttribute('autocomplete','email');
+  form.onsubmit=async e=>{
+   e.preventDefault();
+   const email=(input&&input.value||'').trim();
+   msg.textContent='Enviando...';
+   msg.classList.remove('error');
+   if(button){button.disabled=true;button.textContent='Enviando...';}
+   try{
+    if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new Error('Informe um e-mail valido.');
+    const res=await callAppsScript('subscribe',{email,source:'newsletter'});
+    if(!res||!res.ok) throw new Error(res&&res.message||'Nao foi possivel cadastrar.');
+    msg.textContent=res.duplicate?'Este e-mail ja esta cadastrado.':'E-mail cadastrado com sucesso.';
+    if(input&&!res.duplicate) input.value='';
+   }catch(err){
+    msg.textContent=err.message||String(err);
+    msg.classList.add('error');
+   }finally{
+    if(button){button.disabled=false;button.textContent='Enviar';}
+   }
+  };
+ });
+}
 
 function addEntrance(root=document){
  const productCards=$$('.product-card',root);
@@ -182,7 +284,13 @@ function renderSite(isRefresh=false){setBase(); setupInterest(); const page=docu
  if(page==='artigo'){let id=new URLSearchParams(location.search).get('id')||DATA.posts[0].id, p=DATA.posts.find(x=>x.id===id)||DATA.posts[0]; document.title=p.title+' | Galeria das Ervas'; $('#article').innerHTML=`<img class="article-cover" src="${p.cover_url||'assets/img/site/hero-ervas.png'}" alt="${p.title}" onerror="this.onerror=null;this.src='assets/img/site/hero-ervas.png'"><h1>${p.title}</h1><p class="lead">${p.excerpt||''}</p><div class="article-body">${formatArticleBody(p.body||'')}</div>`;}
  refreshVisibility(); isRefresh?revealDynamic(document):addEntrance(); updateInterestButtons(); renderInterestBox();
 }
-async function boot(){await loadData(); renderSite(false);}
+async function boot(){
+ setupNewsletterForms();
+ const cached=cfgOk()?readCachedData(true):null;
+ if(cached) mergeRemoteData(cached);
+ renderSite(false);
+ refreshDataInBackground();
+}
 document.addEventListener('DOMContentLoaded',boot);
 
 // v10 - abre/fecha menu sanduíche no mobile

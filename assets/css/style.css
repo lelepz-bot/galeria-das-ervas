@@ -183,9 +183,9 @@ body[data-page="contato"] .nav a[href="contato.html"]{color:var(--green);font-we
 @media(max-width:850px){
   .site-header .top{padding:10px 0;background:var(--soft)}
   .site-header .top-inner{display:block;text-align:initial}
-  .mobile-head{display:flex!important;margin-bottom:0;min-height:58px}
-  .mobile-head .logo{width:142px;margin:0}
-  .menu-toggle{display:flex;width:46px;height:46px;border-radius:14px}
+  .mobile-head{display:flex!important;justify-content:flex-start;align-items:center;gap:18px;margin:0 auto;min-height:76px;width:max-content;max-width:100%}
+  .mobile-head .logo{width:200px;margin:0}
+  .menu-toggle{display:flex;width:58px;height:58px;border-radius:18px}
   .desktop-logo{display:none!important}
   .quick{display:none!important}
   .nav-wrap{background:var(--soft);height:auto;position:relative;z-index:50}
@@ -220,6 +220,7 @@ body[data-page="contato"] .nav a[href="contato.html"]{color:var(--green);font-we
 .contact-map-preview:before{content:"";position:absolute;inset:0;background:linear-gradient(90deg,rgba(20,130,43,.84),rgba(20,130,43,.38));z-index:1;pointer-events:none}
 .contact-map-preview>div{position:relative;z-index:2;max-width:470px;text-shadow:0 2px 16px rgba(0,0,0,.18)}
 .contact-map-preview h3{font-size:28px;margin:0 0 8px}.contact-map-preview p{max-width:430px;margin:0 auto 18px}
+.newsletter-msg{grid-column:1/-1;margin:4px 14px 0;color:#fff;font-size:13px;font-weight:800}.newsletter-msg.error{color:#ffe0d9}.newsletter button:disabled{opacity:.7;cursor:wait}
 @media(max-width:850px){
   .newsletter{display:block!important;padding:26px 20px;border-radius:24px;text-align:left;overflow:hidden}
   .newsletter b{display:block;font-size:22px;line-height:1.15;margin-bottom:18px}
@@ -343,4 +344,93 @@ body[data-page="contato"] .nav a[href="contato.html"]{color:var(--green);font-we
 @media(max-width:850px){
   .product-flow-note{font-size:14px;padding:14px 15px;border-radius:16px}
   .social a.js-facebook:before,.footer-social a.js-facebook:before{font-size:20px}
+}
+
+/* v16 - ícones sociais verdes com SVG limpo */
+.social,
+.footer-social{
+  gap:12px;
+}
+.social a.js-instagram,
+.social a.js-facebook,
+.social a.js-whats,
+.social a.js-x-twitter,
+.footer-social a.js-instagram,
+.footer-social a.js-facebook,
+.footer-social a.js-whats,
+.footer-social a.js-x-twitter{
+  width:48px!important;
+  height:48px!important;
+  border-radius:50%!important;
+  display:grid!important;
+  place-items:center!important;
+  background:var(--green)!important;
+  color:#fff!important;
+  border:2px solid var(--green)!important;
+  box-shadow:0 12px 26px rgba(20,70,30,.18)!important;
+  transition:background .2s ease,color .2s ease,transform .2s ease,box-shadow .2s ease!important;
+  overflow:hidden!important;
+  font-size:0!important;
+}
+.social a.js-instagram:before,
+.social a.js-instagram:after,
+.social a.js-facebook:before,
+.social a.js-whats:before,
+.social a.js-whats:after,
+.social a.js-x-twitter:before,
+.footer-social a.js-instagram:before,
+.footer-social a.js-instagram:after,
+.footer-social a.js-facebook:before,
+.footer-social a.js-whats:before,
+.footer-social a.js-whats:after,
+.footer-social a.js-x-twitter:before{
+  content:none!important;
+}
+.social a svg,
+.footer-social a svg{
+  width:25px;
+  height:25px;
+  display:block;
+}
+.social a svg *,
+.footer-social a svg *{
+  fill:none;
+  stroke:currentColor;
+  stroke-width:1.9;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+}
+.social a.js-facebook svg *,
+.social a.js-x-twitter svg *,
+.footer-social a.js-facebook svg *,
+.footer-social a.js-x-twitter svg *{
+  fill:currentColor;
+  stroke:none;
+}
+.social a.js-whats svg .phone,
+.footer-social a.js-whats svg .phone{
+  fill:currentColor;
+  stroke:none;
+}
+.social a:hover,
+.footer-social a:hover{
+  background:#fff!important;
+  color:var(--green)!important;
+  transform:translateY(-2px);
+  box-shadow:0 16px 34px rgba(20,70,30,.24)!important;
+}
+.footer-social a:hover{
+  background:#171918!important;
+  color:#fff!important;
+  border-color:#fff!important;
+}
+@media(max-width:850px){
+  .social a.js-instagram,
+  .social a.js-facebook,
+  .social a.js-whats,
+  .social a.js-x-twitter{
+    width:42px!important;
+    height:42px!important;
+  }
+  .social a svg{width:22px;height:22px}
 }
