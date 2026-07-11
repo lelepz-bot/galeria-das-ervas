@@ -452,3 +452,10 @@ body[data-page="contato"] .nav a[href="contato.html"]{color:var(--green);font-we
 .hero::after{display:none}
 .feature-strip{margin-top:-70px;margin-bottom:0}
 @media(max-width:850px){.feature-strip{margin-top:-38px;margin-bottom:0}}
+
+/* Os cards pertencem ao hero: o fundo termina somente depois deles. */
+.hero{min-height:620px;flex-direction:column;justify-content:center;align-items:stretch;padding:28px 0 54px;margin-bottom:0}
+.hero::after{display:none}
+.hero>.container:first-child{width:100%}
+.hero>.feature-strip{width:100%;margin-top:42px;margin-bottom:0}
+@media(max-width:850px){.hero{min-height:0;padding:34px 0 42px}.hero>.feature-strip{margin-top:34px}}
