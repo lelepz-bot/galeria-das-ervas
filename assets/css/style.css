@@ -459,3 +459,11 @@ body[data-page="contato"] .nav a[href="contato.html"]{color:var(--green);font-we
 .hero>.container:first-child{width:100%}
 .hero>.feature-strip{width:100%;margin-top:42px;margin-bottom:0}
 @media(max-width:850px){.hero{min-height:0;padding:34px 0 42px}.hero>.feature-strip{margin-top:34px}}
+
+/* Conteúdo dos cards sobre o fundo claro do hero. */
+.hero>.feature-strip .mini p,
+.hero>.feature-strip .mini b{color:#1d261d!important;display:block!important;opacity:1!important;visibility:visible!important}
+
+/* Os produtos carregados do Apps Script devem permanecer visíveis mesmo
+   quando o observador de animação não estiver disponível. */
+#products .product-card.product-fade{opacity:1!important;visibility:visible!important}
