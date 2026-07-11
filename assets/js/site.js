@@ -316,7 +316,12 @@ async function boot(){
  const cached=cfgOk()?readCachedData(true):null;
  if(cached) mergeRemoteData(cached);
  renderSite(false);
- refreshDataInBackground();
+ try{
+  await loadData();
+  renderSite(true);
+ }catch(e){
+  console.warn('Dados remotos indisponíveis; mantendo dados locais.',e);
+ }
 }
 document.addEventListener('DOMContentLoaded',boot);
 
