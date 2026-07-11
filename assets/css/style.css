@@ -468,4 +468,17 @@ body[data-page="contato"] .nav a[href="contato.html"]{color:var(--green);font-we
 
 /* Os produtos carregados do Apps Script devem permanecer visíveis mesmo
    quando o observador de animação não estiver disponível. */
-#products .product-card.product-fade{opacity:1!important;visibility:visible!important}
+#products .product-card.product-fade{visibility:visible}
+.product-card>div:not(.product-actions){min-height:155px;display:flex;flex-direction:column;justify-content:flex-start}
+.product-card>div:not(.product-actions) p{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;line-height:1.45}
+.product-actions{gap:0!important;margin:0!important}
+.product-actions .btn.small{border-radius:0!important;transition:filter .2s ease,transform .2s ease,background .2s ease;position:relative;overflow:hidden}
+.product-actions .btn.small:first-child{background:#159447;color:#fff}
+.product-actions .btn.small:last-child{background:#7bdc58;color:#12351d;border-top:1px solid rgba(18,53,29,.16)}
+.product-actions .btn.small:hover{filter:brightness(1.08);transform:none;box-shadow:none}
+.product-actions .btn.small:active{transform:scale(.98)}
+.product-actions .selected-flash{animation:selectedFlash .7s ease both}
+@keyframes selectedFlash{0%,100%{filter:brightness(1);box-shadow:none}25%{filter:brightness(1.35);box-shadow:0 0 0 6px rgba(123,220,88,.35)}55%{filter:brightness(1.08);box-shadow:0 0 0 2px rgba(123,220,88,.18)}75%{filter:brightness(1.35);box-shadow:0 0 0 5px rgba(123,220,88,.28)}}
+.product-search{display:block;max-width:560px;margin:0 auto 22px;padding:16px 20px;border:1px solid var(--line);border-radius:999px;font:inherit;color:var(--dark);background:#fff;box-shadow:0 10px 28px rgba(20,70,30,.08)}
+.product-search:focus{outline:3px solid rgba(24,184,52,.18);border-color:var(--green)}
+.products-empty{text-align:center;grid-column:1/-1;color:var(--muted);padding:42px 20px}
