@@ -122,6 +122,7 @@ body[data-page="contato"] .nav a[href="contato.html"]{color:var(--green);font-we
 @media(max-width:850px){.mini-icon{width:50px;height:50px}.category-icon{width:70px;height:70px}}
 
 /* v9 - refinamento de imagens, produtos e artigo */
+.categories-cta{text-align:center;margin-top:32px}.categories-cta .btn{text-transform:uppercase;min-width:150px}
 .product-image-link{display:block;aspect-ratio:4/3;overflow:hidden;background:#f7f9f2;border-bottom:1px solid var(--line)}
 .product-card img{width:100%!important;height:100%!important;min-height:0!important;object-fit:cover!important;padding:0!important;background:#f7f9f2;display:block;image-rendering:auto;transform:scale(1.01);transition:transform .9s ease, filter .9s ease;filter:saturate(1.04) contrast(1.02)}
 .product-card:hover img{transform:scale(1.045)}
