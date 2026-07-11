@@ -643,3 +643,234 @@ function importedCategory_(idOrName, explicitName) {
 
 function importedDescription_(category) { return 'Produto selecionado da Galeria das Ervas. Consulte disponibilidade, apresentação e formas de uso.'; }
 function isImportedNameForReview_(name) { return /\bteste\b|thermoro|trique|tsubassa|adicional|gotas$|encapsulados$|diversos$/.test(String(name).toLowerCase()); }
+
+/* ==============================
+ * ENRIQUECIMENTO AUTOMÁTICO DE PRODUTOS
+ * ==============================
+ * Pesquisa cada produto com Google Search via Gemini e preenche somente
+ * descrição/benefícios vazios ou genéricos. O processo é retomável:
+ * execute enriquecerProdutosAutomaticamente() novamente para continuar.
+ *
+ * Configuração única:
+ * 1. Crie uma chave no Google AI Studio.
+ * 2. Execute salvarChaveGemini('SUA_CHAVE') uma vez.
+ * 3. Execute enriquecerProdutosAutomaticamente() quantas vezes precisar.
+ *
+ * A chave fica nas Script Properties e não é gravada na planilha.
+ */
+const PRODUCT_ENRICHMENT_ = {
+  model: 'gemini-2.5-flash',
+  batchSize: 8,
+  cursorKey: 'PRODUCT_ENRICHMENT_CURSOR',
+  apiKey: 'GEMINI_API_KEY',
+  reportSheet: 'relatorio_enriquecimento'
+};
+
+function salvarChaveGemini(apiKey) {
+  apiKey = String(apiKey || '').trim();
+  if (!apiKey || apiKey.length < 20) throw new Error('Informe uma chave Gemini válida.');
+  PropertiesService.getScriptProperties().setProperty(PRODUCT_ENRICHMENT_.apiKey, apiKey);
+  return {ok: true, message: 'Chave Gemini salva nas propriedades do projeto.'};
+}
+
+function prepararEnriquecimentoProdutos() {
+  ensureSetup_();
+  const ss = getDb_();
+  const sh = getOrCreateEnrichmentReport_(ss);
+  const products = readRows_(ss.getSheetByName(APP.sheets.products));
+  const pending = products.filter(productNeedsEnrichment_).length;
+  return {
+    ok: true,
+    total: products.length,
+    pendentes: pending,
+    lote: PRODUCT_ENRICHMENT_.batchSize,
+    relatorio: sh.getName(),
+    cursor: Number(PropertiesService.getScriptProperties().getProperty(PRODUCT_ENRICHMENT_.cursorKey) || 0)
+  };
+}
+
+function statusEnriquecimentoProdutos() {
+  ensureSetup_();
+  const products = readRows_(getDb_().getSheetByName(APP.sheets.products));
+  const cursor = Number(PropertiesService.getScriptProperties().getProperty(PRODUCT_ENRICHMENT_.cursorKey) || 0);
+  const report = getDb_().getSheetByName(PRODUCT_ENRICHMENT_.reportSheet);
+  return {
+    ok: true,
+    total: products.length,
+    cursor,
+    restantes: products.slice(cursor).filter(productNeedsEnrichment_).length,
+    relatorio: report ? report.getUrl() : ''
+  };
+}
+
+function resetarEnriquecimentoProdutos() {
+  PropertiesService.getScriptProperties().deleteProperty(PRODUCT_ENRICHMENT_.cursorKey);
+  return {ok: true, message: 'Progresso zerado. A próxima execução começará do primeiro produto.'};
+}
+
+function enriquecerProdutosAutomaticamente() {
+  ensureSetup_();
+  const lock = LockService.getScriptLock();
+  lock.waitLock(10000);
+  try {
+    const apiKey = PropertiesService.getScriptProperties().getProperty(PRODUCT_ENRICHMENT_.apiKey);
+    if (!apiKey) throw new Error('Chave ausente. Execute salvarChaveGemini("SUA_CHAVE") primeiro.');
+
+    const ss = getDb_();
+    const sh = ss.getSheetByName(APP.sheets.products);
+    const reportSh = getOrCreateEnrichmentReport_(ss);
+    const headers = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0].map(String);
+    const rows = readRows_(sh);
+    let cursor = Number(PropertiesService.getScriptProperties().getProperty(PRODUCT_ENRICHMENT_.cursorKey) || 0);
+    const result = {ok: true, processados: 0, atualizados: 0, ignorados: 0, erros: 0, restantes: 0};
+
+    for (let i = cursor; i < rows.length && result.processados < PRODUCT_ENRICHMENT_.batchSize; i++) {
+      const product = rows[i];
+      cursor = i + 1;
+      if (!productNeedsEnrichment_(product)) {
+        result.ignorados++;
+        appendEnrichmentReport_(reportSh, product, 'ignorado', '', 'Descrição e benefícios já parecem preenchidos.');
+        continue;
+      }
+      result.processados++;
+      try {
+        const enrichment = researchProductWithGemini_(product, apiKey);
+        const descriptionCol = headers.indexOf('description') + 1;
+        const benefitsCol = headers.indexOf('benefits') + 1;
+        if (!descriptionCol || !benefitsCol) throw new Error('Colunas description/benefits não encontradas.');
+        if (productNeedsDescription_(product)) sh.getRange(i + 2, descriptionCol).setValue(enrichment.description);
+        if (productNeedsBenefits_(product)) sh.getRange(i + 2, benefitsCol).setValue(enrichment.benefits);
+        appendEnrichmentReport_(reportSh, product, 'atualizado', enrichment.sources.join('\n'), enrichment.confidence || 'não informado');
+        result.atualizados++;
+      } catch (err) {
+        appendEnrichmentReport_(reportSh, product, 'erro', '', err.message || String(err));
+        result.erros++;
+      }
+    }
+
+    PropertiesService.getScriptProperties().setProperty(PRODUCT_ENRICHMENT_.cursorKey, String(cursor));
+    result.restantes = rows.slice(cursor).filter(productNeedsEnrichment_).length;
+    clearPublicCache_();
+    return result;
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function productNeedsEnrichment_(product) {
+  return productNeedsDescription_(product) || productNeedsBenefits_(product);
+}
+
+function productNeedsDescription_(product) {
+  const value = String(product && product.description || '').trim().toLowerCase();
+  return !value || value.indexOf('produto selecionado da galeria das ervas') >= 0 ||
+    value.indexOf('consulte disponibilidade') >= 0 || value === 'produto natural.';
+}
+
+function productNeedsBenefits_(product) {
+  const value = String(product && product.benefits || '').trim().toLowerCase();
+  return !value || value.indexOf('consulte disponibilidade') >= 0 || value === 'benefícios a confirmar.';
+}
+
+function researchProductWithGemini_(product, apiKey) {
+  const name = String(product.name || '').trim();
+  const category = String(product.category || '').trim();
+  const prompt = [
+    'Pesquise na web antes de responder e use fontes confiáveis, preferencialmente órgãos públicos, universidades, sociedades científicas e fabricantes oficiais.',
+    'Produto: ' + name,
+    'Categoria cadastrada: ' + category,
+    '',
+    'Crie conteúdo em português do Brasil para uma loja de produtos naturais.',
+    'Descrição: 2 ou 3 frases objetivas sobre o que é o produto, sua forma/apresentação e usos culinários ou tradicionais quando confirmados.',
+    'Benefícios: 3 a 5 itens curtos separados por ponto e vírgula, somente benefícios nutricionais, características ou usos tradicionais sustentados pelas fontes.',
+    'Não invente composição, dose, origem ou indicação. Não diga que cura, trata, previne doenças, emagrece, substitui remédio ou garante resultado. Se a evidência for limitada, escreva isso com clareza.',
+    'Retorne apenas JSON válido no formato solicitado. Inclua as URLs das fontes consultadas.'
+  ].join('\n');
+
+  const schema = {
+    type: 'OBJECT',
+    properties: {
+      description: {type: 'STRING'},
+      benefits: {type: 'STRING'},
+      confidence: {type: 'STRING'},
+      sources: {type: 'ARRAY', items: {type: 'STRING'}}
+    },
+    required: ['description', 'benefits', 'confidence', 'sources']
+  };
+  const payload = {
+    contents: [{role: 'user', parts: [{text: prompt}]}],
+    tools: [{google_search: {}}],
+    generationConfig: {
+      temperature: 0.2,
+      responseMimeType: 'application/json',
+      responseSchema: schema
+    }
+  };
+  const url = 'https://generativelanguage.googleapis.com/v1beta/models/' + PRODUCT_ENRICHMENT_.model + ':generateContent?key=' + encodeURIComponent(apiKey);
+  const response = UrlFetchApp.fetch(url, {
+    method: 'post',
+    contentType: 'application/json',
+    payload: JSON.stringify(payload),
+    muteHttpExceptions: true
+  });
+  const code = response.getResponseCode();
+  const body = response.getContentText();
+  if (code < 200 || code >= 300) throw new Error('Gemini HTTP ' + code + ': ' + body.slice(0, 500));
+  const data = JSON.parse(body);
+  const text = data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts
+    .map(function(part) { return part.text || ''; }).join('');
+  const result = parseGeminiJson_(text);
+  const grounding = data.candidates[0].groundingMetadata || {};
+  const groundedSources = (grounding.groundingChunks || []).map(function(chunk) {
+    return chunk.web && chunk.web.uri ? chunk.web.uri : '';
+  }).filter(Boolean);
+  result.sources = uniqueStrings_(result.sources.concat(groundedSources));
+  validateEnrichment_(result, name);
+  return result;
+}
+
+function parseGeminiJson_(text) {
+  let clean = String(text || '').trim().replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/\s*```$/i, '');
+  const start = clean.indexOf('{');
+  const end = clean.lastIndexOf('}');
+  if (start >= 0 && end > start) clean = clean.slice(start, end + 1);
+  const result = JSON.parse(clean);
+  result.description = String(result.description || '').trim();
+  result.benefits = String(result.benefits || '').trim();
+  result.confidence = String(result.confidence || '').trim();
+  result.sources = Array.isArray(result.sources) ? result.sources.map(String).filter(Boolean) : [];
+  return result;
+}
+
+function validateEnrichment_(result, productName) {
+  if (result.description.length < 80) throw new Error('Descrição curta demais para ' + productName + '.');
+  if (result.benefits.length < 30) throw new Error('Benefícios insuficientes para ' + productName + '.');
+  if (!result.sources.length) throw new Error('Nenhuma fonte retornada para ' + productName + '.');
+  if (/cura|curar|trata|tratamento|previne|prevenir|emagrece|emagrec|substitui remédio|garante resultado/i.test(result.description + ' ' + result.benefits)) {
+    throw new Error('Texto rejeitado por conter promessa médica ou resultado garantido.');
+  }
+}
+
+function uniqueStrings_(values) {
+  const seen = {};
+  return values.filter(function(value) {
+    value = String(value || '').trim();
+    if (!value || seen[value]) return false;
+    seen[value] = true;
+    return true;
+  });
+}
+
+function getOrCreateEnrichmentReport_(ss) {
+  let sh = ss.getSheetByName(PRODUCT_ENRICHMENT_.reportSheet);
+  if (!sh) sh = ss.insertSheet(PRODUCT_ENRICHMENT_.reportSheet);
+  if (sh.getLastRow() === 0) {
+    sh.getRange(1, 1, 1, 6).setValues([['data', 'id', 'produto', 'status', 'fontes', 'observacao']]);
+    sh.setFrozenRows(1);
+  }
+  return sh;
+}
+
+function appendEnrichmentReport_(sh, product, status, sources, note) {
+  sh.appendRow([new Date(), product.id || '', product.name || '', status, sources || '', note || '']);
+}
