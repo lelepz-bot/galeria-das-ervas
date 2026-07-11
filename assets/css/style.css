@@ -446,3 +446,9 @@ body[data-page="contato"] .nav a[href="contato.html"]{color:var(--green);font-we
 .pagination button:hover,.pagination button.active{background:var(--green);border-color:var(--green);color:#fff}
 .pagination button:disabled{opacity:.45;cursor:not-allowed}
 .pagination .pagination-info{color:var(--muted);font-size:13px;margin:0 10px}
+
+/* A faixa deve cruzar exatamente a linha entre o hero e a próxima seção. */
+.hero{margin-bottom:0}
+.hero::after{display:none}
+.feature-strip{margin-top:-70px;margin-bottom:0}
+@media(max-width:850px){.feature-strip{margin-top:-38px;margin-bottom:0}}
