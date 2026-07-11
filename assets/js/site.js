@@ -291,9 +291,22 @@ function renderProductPagination(total,page,render){
  const pagination=ensureProductPagination(); if(!pagination) return;
  const pages=Math.ceil(total/PRODUCTS_PER_PAGE); pagination.innerHTML='';
  if(pages<=1) return;
- const previous=document.createElement('button'); previous.type='button'; previous.textContent='‹'; previous.setAttribute('aria-label','Página anterior'); previous.disabled=page===1; previous.onclick=()=>render(page-1); pagination.appendChild(previous);
- for(let i=1;i<=pages;i++){const button=document.createElement('button');button.type='button';button.textContent=i;button.className=i===page?'active':'';button.setAttribute('aria-label',`Página ${i}`);if(i===page)button.setAttribute('aria-current','page');button.onclick=()=>render(i);pagination.appendChild(button);}
- const next=document.createElement('button'); next.type='button'; next.textContent='›'; next.setAttribute('aria-label','Próxima página'); next.disabled=page===pages; next.onclick=()=>render(page+1); pagination.appendChild(next);
+ const addButton=(label,target,opts={})=>{
+  const button=document.createElement('button'); button.type='button'; button.textContent=label;
+  button.setAttribute('aria-label',opts.label||`Página ${target}`);
+  if(opts.active){button.className='active';button.setAttribute('aria-current','page');}
+  if(opts.disabled) button.disabled=true; else button.onclick=()=>render(target);
+  pagination.appendChild(button);
+ };
+ const addDots=()=>{const dots=document.createElement('span');dots.className='pagination-dots';dots.textContent='…';dots.setAttribute('aria-hidden','true');pagination.appendChild(dots)};
+ addButton('‹',page-1,{label:'Página anterior',disabled:page===1});
+ addButton('1',1,{active:page===1});
+ const start=Math.max(2,page-1), end=Math.min(pages-1,page+1);
+ if(start>2) addDots();
+ for(let n=start;n<=end;n++) addButton(String(n),n,{active:n===page});
+ if(end<pages-1) addDots();
+ if(pages>1) addButton(String(pages),pages,{active:page===pages});
+ addButton('›',page+1,{label:'Próxima página',disabled:page===pages});
  const info=document.createElement('span'); info.className='pagination-info'; info.textContent=`${total} produtos`; pagination.appendChild(info);
 }
 function renderProductsList(category,page=1){
