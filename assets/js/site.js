@@ -4,7 +4,9 @@ let DATA=structuredClone(window.FALLBACK);
 const DATA_CACHE_KEY='gde_public_data_v2';
 const DATA_CACHE_MAX_AGE=1000*60*60*12;
 const DATA_STALE_MAX_AGE=1000*60*60*24*7;
-const JSONP_TIMEOUT=6500;
+// A resposta pública contém centenas de produtos e pode levar alguns segundos
+// para sair do Apps Script, especialmente quando a execução está fria.
+const JSONP_TIMEOUT=20000;
 let interestSetupDone=false;
 const PRODUCTS_PER_PAGE=16;
 let productsPage=1;
