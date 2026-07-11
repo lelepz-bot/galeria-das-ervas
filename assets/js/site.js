@@ -1,11 +1,14 @@
 const cfgOk=()=>window.APPS_SCRIPT_URL&&window.APPS_SCRIPT_URL.includes('script.google.com')&&!window.APPS_SCRIPT_URL.includes('COLE_AQUI');
 const $=(s,r=document)=>r.querySelector(s), $$=(s,r=document)=>[...r.querySelectorAll(s)];
 let DATA=structuredClone(window.FALLBACK);
-const DATA_CACHE_KEY='gde_public_data_v1';
+const DATA_CACHE_KEY='gde_public_data_v2';
 const DATA_CACHE_MAX_AGE=1000*60*60*12;
 const DATA_STALE_MAX_AGE=1000*60*60*24*7;
 const JSONP_TIMEOUT=6500;
 let interestSetupDone=false;
+const PRODUCTS_PER_PAGE=16;
+let productsPage=1;
+let productsCategory='all';
 function cleanupJsonp(cb,s,timer){
  clearTimeout(timer);
  delete window[cb];
@@ -276,9 +279,33 @@ function formatArticleBody(body=''){
 function featuredProducts(){let featured=DATA.products.filter(p=>p.featured===true||asText(p.featured).toLowerCase()==='true'||asText(p.featured).toLowerCase()==='sim'||asText(p.featured)==='1'); return (featured.length?featured:DATA.products).slice(0,4)}
 function cardProduct(p){return `<article class="card product-card"><a class="product-image-link" href="produto.html?id=${p.id}"><img src="${productImage(p)}" data-product-id="${p.id}" alt="${p.name}" loading="lazy" onerror="handleImageError(this)"></a><div><small>${categoryName(p.category)}</small><h3>${p.name}</h3><p>${p.description||''}</p></div><div class="product-actions"><a class="btn small" href="produto.html?id=${p.id}">Ver produto</a><button class="btn outline small" type="button" data-add-interest="${p.id}">Adicionar à seleção</button></div></article>`}
 function cardPost(p){return `<article class="card post-card"><img src="${p.cover_url||'assets/img/site/hero-ervas.png'}" alt="${p.title}" loading="lazy" onerror="this.onerror=null;this.src='assets/img/site/hero-ervas.png'"><div><h3>${p.title}</h3><p>${p.excerpt||''}</p><a href="artigo.html?id=${p.id}">Leia mais</a></div></article>`}
+function ensureProductPagination(){
+ const products=$('#products'); if(!products) return null;
+ let pagination=$('#pagination');
+ if(!pagination){pagination=document.createElement('nav');pagination.id='pagination';pagination.className='pagination';pagination.setAttribute('aria-label','Paginação de produtos');products.parentNode.appendChild(pagination);}
+ return pagination;
+}
+function renderProductPagination(total,page,render){
+ const pagination=ensureProductPagination(); if(!pagination) return;
+ const pages=Math.ceil(total/PRODUCTS_PER_PAGE); pagination.innerHTML='';
+ if(pages<=1) return;
+ const previous=document.createElement('button'); previous.type='button'; previous.textContent='‹'; previous.setAttribute('aria-label','Página anterior'); previous.disabled=page===1; previous.onclick=()=>render(page-1); pagination.appendChild(previous);
+ for(let i=1;i<=pages;i++){const button=document.createElement('button');button.type='button';button.textContent=i;button.className=i===page?'active':'';button.setAttribute('aria-label',`Página ${i}`);if(i===page)button.setAttribute('aria-current','page');button.onclick=()=>render(i);pagination.appendChild(button);}
+ const next=document.createElement('button'); next.type='button'; next.textContent='›'; next.setAttribute('aria-label','Próxima página'); next.disabled=page===pages; next.onclick=()=>render(page+1); pagination.appendChild(next);
+ const info=document.createElement('span'); info.className='pagination-info'; info.textContent=`${total} produtos`; pagination.appendChild(info);
+}
+function renderProductsList(category,page=1){
+ const all=DATA.products.filter(p=>category==='all'||p.category===category);
+ const pages=Math.max(1,Math.ceil(all.length/PRODUCTS_PER_PAGE));
+ productsCategory=category; productsPage=Math.min(Math.max(1,page),pages);
+ const start=(productsPage-1)*PRODUCTS_PER_PAGE;
+ $('#products').innerHTML=all.slice(start,start+PRODUCTS_PER_PAGE).map(cardProduct).join('');
+ renderProductPagination(all.length,productsPage,nextPage=>renderProductsList(category,nextPage));
+ revealDynamic($('#products'));
+}
 function renderSite(isRefresh=false){setBase(); setupInterest(); const page=document.body.dataset.page;
  if(page==='home'){ $('.hero').style.backgroundImage=`linear-gradient(90deg,rgba(21,115,50,.65),rgba(21,115,50,.2)),url('${DATA.settings.hero_url||'assets/img/site/hero-ervas.png'}')`; $('#featured').innerHTML=featuredProducts().map(cardProduct).join(''); $('#categories').innerHTML=DATA.categories.map(c=>`<article class="category"><img class="category-icon" src="${categoryIcon(c)}" alt="" onerror="this.onerror=null;this.src='${CATEGORY_ICON_MAP[c.id]||'assets/img/icones/ervas-medicinais.png'}'"><h3>${c.name}</h3><p>${c.description||''}</p></article>`).join(''); $('#posts').innerHTML=DATA.posts.slice(0,3).map(cardPost).join(''); $('#testimonials').innerHTML=DATA.testimonials.slice(0,3).map(t=>`<article class="card testimonial"><img src="${t.photo_url||'assets/img/site/logo.png'}" alt="${t.name}" onerror="this.onerror=null;this.src='assets/img/site/logo.png'"><h3>${t.name}</h3><p>${t.text}</p><strong>${t.rating||5}/5</strong></article>`).join('');}
- if(page==='produtos'){ $('#filters').innerHTML='<button data-cat="all" class="active">Todos</button>'+DATA.categories.map(c=>`<button data-cat="${c.id}">${c.name}</button>`).join(''); const render=cat=>{ $('#products').innerHTML=DATA.products.filter(p=>cat==='all'||p.category===cat).map(cardProduct).join(''); revealDynamic($('#products')); }; render('all'); $$('#filters button').forEach(b=>b.onclick=()=>{$$('#filters button').forEach(x=>x.classList.remove('active'));b.classList.add('active');render(b.dataset.cat)});}
+ if(page==='produtos'){ $('#filters').innerHTML='<button data-cat="all" class="active">Todos</button>'+DATA.categories.map(c=>`<button data-cat="${c.id}">${c.name}</button>`).join(''); renderProductsList(productsCategory,productsPage); $$('#filters button').forEach(b=>b.onclick=()=>{$$('#filters button').forEach(x=>x.classList.remove('active'));b.classList.add('active');renderProductsList(b.dataset.cat,1)});}
  if(page==='produto'){let id=new URLSearchParams(location.search).get('id')||DATA.products[0].id, p=DATA.products.find(x=>x.id===id)||DATA.products[0]; document.title=p.name+' | Galeria das Ervas'; $('#productDetail').innerHTML=`<img src="${productImage(p)}" data-product-id="${p.id}" alt="${p.name}" onerror="handleImageError(this)"><div><span class="pill">${categoryName(p.category)}</span><h1>${p.name}</h1><p>${p.description||''}</p><h3>Características</h3><p>${p.benefits||'Produto natural selecionado com cuidado.'}</p><div class="detail-actions"><a class="btn js-whats setting-whatsapp" href="${waLink(`Olá!\n\nTenho interesse no produto:\n\n- ${p.name}\n\nGostaria de conversar sobre disponibilidade, quantidade, formas de retirada e pagamento.\n\nObrigado.`)}" target="_blank">Tenho interesse neste produto</a><button class="btn outline" type="button" data-add-interest="${p.id}">Adicionar à minha seleção</button></div></div>`; let rel=DATA.products.filter(x=>x.category===p.category&&x.id!==p.id); if(rel.length<4){rel=[...rel,...DATA.products.filter(x=>x.id!==p.id&&!rel.find(r=>r.id===x.id))]}; $('#related').innerHTML=rel.slice(0,4).map(cardProduct).join('');}
  if(page==='blog'){ $('#postsList').innerHTML=DATA.posts.map(cardPost).join('');}
  if(page==='artigo'){let id=new URLSearchParams(location.search).get('id')||DATA.posts[0].id, p=DATA.posts.find(x=>x.id===id)||DATA.posts[0]; document.title=p.title+' | Galeria das Ervas'; $('#article').innerHTML=`<img class="article-cover" src="${p.cover_url||'assets/img/site/hero-ervas.png'}" alt="${p.title}" onerror="this.onerror=null;this.src='assets/img/site/hero-ervas.png'"><h1>${p.title}</h1><p class="lead">${p.excerpt||''}</p><div class="article-body">${formatArticleBody(p.body||'')}</div>`;}

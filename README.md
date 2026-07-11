@@ -33,6 +33,18 @@ Isso acontece na primeira vez que você abre o painel do Apps Script.
 
 Mesmo assim, é bom entender o que ele cria por trás.
 
+## Importação em lote de produtos
+
+O arquivo `apps-script/Code.gs` também possui um importador seguro para listas grandes.
+
+1. Execute `prepararImportacaoProdutos()` uma vez.
+2. Na aba `importacao_produtos`, cole os nomes na coluna `nome`.
+3. Execute `analisarImportacaoProdutos()`.
+4. Confira a aba `relatorio_importacao`.
+5. Execute `importarProdutosDaAba()` para gravar os produtos.
+
+O importador corrige erros claros de escrita, cria IDs, classifica os produtos, cria categorias novas quando necessário e não apaga produtos existentes. Registros com ID já cadastrado são informados como ignorados no relatório.
+
 ## Abas criadas automaticamente na planilha
 
 O painel cria estas abas:

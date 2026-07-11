@@ -407,4 +407,239 @@ function seedPosts_(){ return [
 function seedTestimonials_(){ return [
  ['rafaela','Rafaela Carmin Pereira','Atendimento maravilhoso e produtos de ótima qualidade.','assets/img/depoimentos/rafaela.jpg',5,true,1],
  ['rosangela','Rosangela Mira','Ótimo atendimento e loja com muita variedade.','assets/img/depoimentos/rosangela.jpg',5,true,2]
- ]; }
+]; }
+
+/* ==============================
+ * IMPORTAÇÃO EM LOTE DE PRODUTOS
+ * ==============================
+ * 1. Execute prepararImportacaoProdutos().
+ * 2. Cole os nomes na coluna "nome" da aba importacao_produtos.
+ * 3. Execute analisarImportacaoProdutos() e confira o relatório.
+ * 4. Execute importarProdutosDaAba() para gravar os produtos.
+ *
+ * A importação é aditiva: não apaga produtos existentes e não substitui
+ * registros com o mesmo id. Categorias novas são criadas automaticamente.
+ */
+function prepararImportacaoProdutos() {
+  ensureSetup_();
+  const ss = getDb_();
+  let sh = ss.getSheetByName('importacao_produtos');
+  if (!sh) sh = ss.insertSheet('importacao_produtos');
+  if (sh.getLastRow() === 0) {
+    sh.getRange(1, 1, 1, 8).setValues([[
+      'nome', 'categoria_manual', 'descricao_manual', 'beneficios_manual',
+      'image_url', 'featured', 'active', 'order'
+    ]]);
+    sh.setFrozenRows(1);
+    sh.autoResizeColumns(1, 8);
+  }
+  return {ok: true, spreadsheetUrl: ss.getUrl(), sheet: 'importacao_produtos'};
+}
+
+function verificarPlanilhaConfigurada() {
+  const expectedId = '1tsn3BxnT3r2s_uExAQYTpzOKh7c4DtSwOQ-nNHh_VhA';
+  const configuredId = PropertiesService.getScriptProperties().getProperty('SPREADSHEET_ID');
+  if (!configuredId) throw new Error('SPREADSHEET_ID ainda não foi configurado. Execute prepararImportacaoProdutos() primeiro.');
+  const ss = SpreadsheetApp.openById(configuredId);
+  const result = {
+    ok: true,
+    configurada: configuredId,
+    esperada: expectedId,
+    corresponde: configuredId === expectedId,
+    nome: ss.getName(),
+    url: ss.getUrl(),
+    abas: ss.getSheets().map(sh => sh.getName())
+  };
+  Logger.log(JSON.stringify(result));
+  return result;
+}
+
+function analisarImportacaoProdutos() {
+  ensureSetup_();
+  const ss = getDb_();
+  const source = ss.getSheetByName('importacao_produtos');
+  if (!source || source.getLastRow() < 2) throw new Error('Cole os nomes na aba importacao_produtos antes de analisar.');
+  const rows = readRows_(source);
+  const report = buildProductImportReport_(rows);
+  writeProductImportReport_(ss, report);
+  if (!report.items.length) throw new Error('Nenhum produto reconhecido. Cole os nomes abaixo do cabeçalho nome, name ou produto na aba importacao_produtos.');
+  return {ok: true, total: report.items.length, duplicates: report.duplicates.length, review: report.review.length};
+}
+
+function importarProdutosDaAba() {
+  ensureSetup_();
+  const ss = getDb_();
+  const source = ss.getSheetByName('importacao_produtos');
+  if (!source || source.getLastRow() < 2) throw new Error('Cole os nomes na aba importacao_produtos antes de importar.');
+  const report = buildProductImportReport_(readRows_(source));
+  if (!report.items.length) throw new Error('Nenhum produto reconhecido. Cole os nomes abaixo do cabeçalho nome, name ou produto na aba importacao_produtos.');
+  writeProductImportReport_(ss, report);
+
+  const categorySheet = ss.getSheetByName(APP.sheets.categories);
+  const productSheet = ss.getSheetByName(APP.sheets.products);
+  const categories = readRows_(categorySheet);
+  const categoryIds = {};
+  categories.forEach(c => categoryIds[String(c.id)] = true);
+  const newCategories = [];
+  report.categories.forEach((category, index) => {
+    if (categoryIds[category.id]) return;
+    newCategories.push([
+      category.id, category.name, category.description,
+      category.image_url, true, categories.length + newCategories.length + 1
+    ]);
+    categoryIds[category.id] = true;
+  });
+  if (newCategories.length) categorySheet.getRange(categorySheet.getLastRow() + 1, 1, newCategories.length, 6).setValues(newCategories);
+
+  const existing = {};
+  readRows_(productSheet).forEach(p => existing[String(p.id)] = true);
+  const products = [];
+  const skipped = [];
+  report.items.forEach(item => {
+    if (existing[item.id]) {
+      skipped.push([item.name, item.id, 'Já existe; não substituído']);
+      return;
+    }
+    products.push([
+      item.id, item.name, item.category, item.description, item.benefits,
+      item.image_url, item.featured, item.active, item.order
+    ]);
+    existing[item.id] = true;
+  });
+  if (products.length) productSheet.getRange(productSheet.getLastRow() + 1, 1, products.length, 9).setValues(products);
+  clearPublicCache_();
+  if (skipped.length) {
+    const sh = ss.getSheetByName('relatorio_importacao');
+    sh.getRange(sh.getLastRow() + 2, 1, 1, 3).setValues([['IGNORADOS', 'id', 'motivo']]);
+    sh.getRange(sh.getLastRow() + 1, 1, skipped.length, 3).setValues(skipped);
+  }
+  return {ok: true, imported: products.length, skipped: skipped.length, categoriesCreated: newCategories.length, review: report.review.length};
+}
+
+function buildProductImportReport_(rows) {
+  const seen = {};
+  const items = [], duplicates = [], review = [], categoryMap = {};
+  let order = 1;
+  rows.forEach(row => {
+    const raw = importRowName_(row);
+    if (!raw || /^(name|nome|produto)$/i.test(raw)) return;
+    const name = normalizeImportedProductName_(raw);
+    const id = slug_(name);
+    if (!id) return;
+    if (seen[id]) {
+      duplicates.push([raw, name, id, 'Nome/ID duplicado']);
+      return;
+    }
+    seen[id] = true;
+    const category = classifyImportedProduct_(name, row.categoria_manual);
+    categoryMap[category.id] = category;
+    const item = {
+      id,
+      name,
+      category: category.id,
+      description: String(row.descricao_manual || '').trim() || importedDescription_(category.name),
+      benefits: String(row.beneficios_manual || '').trim(),
+      image_url: String(row.image_url || '').trim(),
+      featured: bool_(row.featured),
+      active: row.active === '' || row.active === undefined ? true : bool_(row.active),
+      order: Number(row.order) || order++
+    };
+    items.push(item);
+    if (isImportedNameForReview_(raw)) review.push([raw, name, category.name, 'Confirmar nome comercial ou correção']);
+  });
+  return {items, duplicates, review, categories: Object.keys(categoryMap).map(id => categoryMap[id])};
+}
+
+function writeProductImportReport_(ss, report) {
+  let sh = ss.getSheetByName('relatorio_importacao');
+  if (!sh) sh = ss.insertSheet('relatorio_importacao');
+  sh.clearContents();
+  sh.getRange(1, 1, 1, 4).setValues([['nome_original', 'nome_normalizado', 'categoria', 'observacao']]);
+  const rows = report.items.map(item => [item.name, item.name, item.category, 'Pronto para importação']);
+  if (report.duplicates.length) report.duplicates.forEach(r => rows.push([r[0], r[1], '', r[3]]));
+  if (report.review.length) report.review.forEach(r => rows.push([r[0], r[1], r[2], r[3]]));
+  if (!rows.length) rows.push(['', '', '', 'Nenhum produto reconhecido. Verifique a coluna nome/name/produto.']);
+  if (rows.length) sh.getRange(2, 1, rows.length, 4).setValues(rows);
+  sh.setFrozenRows(1);
+  sh.autoResizeColumns(1, 4);
+}
+
+function importRowName_(row) {
+  const preferred = ['nome', 'name', 'produto', 'produto_nome', 'nome_produto'];
+  for (let i = 0; i < preferred.length; i++) {
+    const value = String(row[preferred[i]] || '').trim();
+    if (value) return value;
+  }
+  const keys = Object.keys(row);
+  for (let i = 0; i < keys.length; i++) {
+    const value = String(row[keys[i]] || '').trim();
+    if (value) return value;
+  }
+  return '';
+}
+
+function normalizeImportedProductName_(value) {
+  let s = String(value || '').replace(/\s+/g, ' ').trim();
+  const fixes = {
+    'ACAFRAO': 'AÇAFRÃO', 'ACAI': 'AÇAÍ', 'ACUCAR': 'AÇÚCAR', 'ADOCANTE': 'ADOÇANTE',
+    'AGUA': 'ÁGUA', 'ALCACUZ': 'ALCAÇUZ', 'ALFAZEMAAZUL': 'ALFAZEMA AZUL',
+    'AMEMDOIM': 'AMENDOIM', 'AMENDIM': 'AMENDOIM', 'ANIZ': 'ANIS', 'ARTEMISEA': 'ARTEMÍSIA',
+    'ASSAPEIXE': 'ASSA-PEIXE', 'AVEIA FLOCOS MEDIO': 'AVEIA EM FLOCOS MÉDIOS',
+    'AZEITE OLVI': 'AZEITE OLIVA', 'B12 METHIL': 'B12 METIL', 'BARBATIMAO': 'BARBATIMÃO',
+    'BATATA RUFLLES': 'BATATA RUFFLES', 'BERINGELA': 'BERINJELA', 'CACAU': 'CACAU',
+    'CALCIO': 'CÁLCIO', 'CANELA DE VELHO': 'CANELA-DE-VELHO', 'CAPIM LIMAO': 'CAPIM-LIMÃO',
+    'CARQUEJAAMARGA': 'CARQUEJA AMARGA', 'CHA': 'CHÁ', 'CHAPÉU': 'CHAPÉU',
+    'CHAPEU': 'CHAPÉU', 'COENTRO': 'COENTRO', 'CURCUMA': 'CÚRCUMA', 'DENTE DE LEAO': 'DENTE-DE-LEÃO',
+    'DESCACADOR': 'DESCASCADOR', 'ERVA DOCE': 'ERVA-DOCE', 'ESPINHEIRA SANTA': 'ESPINHEIRA-SANTA',
+    'FARINAH': 'FARINHA', 'FUBAAMARELO': 'FUBÁ AMARELO', 'GENGIBRE E PO': 'GENGIBRE EM PÓ',
+    'HORTELA FOHAS': 'HORTELÃ FOLHAS', 'IPE ROXO PO': 'IPÊ-ROXO EM PÓ', 'JAMBOLAO': 'JAMBOLÃO',
+    'LINFACHA': 'LINHAÇA', 'MARCELA': 'MARCELA', 'MANJERICAO': 'MANJERICÃO', 'MELAO DE SAO CAETANO': 'MELÃO-DE-SÃO-CAETANO',
+    'OREGANO': 'ORÉGANO', 'PAPrica': 'PÁPRICA', 'PIMENTAO': 'PIMENTÃO', 'PROPOLIS': 'PRÓPOLIS',
+    'TOMILHO': 'TOMILHO', 'UCUMA': 'CÚRCUMA', 'URUCUM': 'URUCUM', 'UUVA': 'UVA', 'UVA PASSA': 'UVA-PASSA',
+    'VINAGRE DE MACA': 'VINAGRE DE MAÇÃ', 'VITAMINA C 1 000 mg': 'VITAMINA C 1.000 MG'
+  };
+  Object.keys(fixes).forEach(key => { s = s.replace(new RegExp('\\b' + key + '\\b', 'gi'), fixes[key]); });
+  s = s.replace(/\bC\//gi, 'COM ').replace(/\bS\//gi, 'SEM ')
+    .replace(/\bPCTE\b/gi, 'PACOTE').replace(/\bCAPS\b/gi, 'CÁPSULAS')
+    .replace(/\bCPS\b/gi, 'CÁPSULAS').replace(/\bCHA\b/gi, 'CHÁ')
+    .replace(/\s{2,}/g, ' ').trim();
+  return s.split(' ').map((word, i) => {
+    if (/^[A-ZÁÀÂÃÉÊÍÓÔÕÚÇ0-9%+.\-/]+$/i.test(word) && word.length > 3) return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+    return word;
+  }).join(' ').replace(/\b(De|Da|Do|Das|Dos|Em|E|Com|Sem|Para)\b/g, m => m.toLowerCase())
+    .replace(/^./, m => m.toUpperCase());
+}
+
+function classifyImportedProduct_(name, manual) {
+  if (manual) return importedCategory_(manual);
+  const n = slug_(name);
+  const rules = [
+    ['suplementos-encapsulados', 'Suplementos e encapsulados', /capsula|encapsulado|vitamina|magnesio|colageno|creatina|albumina|biotina|ginseng|cromo|calcio|zinco|omega|probio|glutamina|melatonina|coenzima|espirulina|cloreto-de-magnesio/],
+    ['chas-naturais', 'Chás naturais', /cha|erva|folha|folhas|casca|flor|valeriana|camomila|hibisco|mate|funcho|boldo|carqueja|cavalinha/],
+    ['ervas-medicinais', 'Ervas medicinais', /extrato|tintura|gotas|xarope|elixir|arnica|babosa|eucalipto|propolis|guaco|jure|moringa|ginkgo|ginko|garcinia/],
+    ['especiarias-temperos', 'Especiarias e temperos', /pimenta|canela|curcuma|acafrao|urucum|colorau|cominho|oregano|tomilho|alecrim|manjer|curry|tempero|alho|cebola|paprica|chimichurri|cravo|noz-moscada/],
+    ['graos-farinhas-sementes', 'Grãos, farinhas e sementes', /farinha|farelo|grao|feijao|arroz|aveia|chia|linhaca|quinoa|amaranto|trigo|lentilha|fuba|polvilho|fecula|gergelim|semente/],
+    ['castanhas-frutas-secas', 'Castanhas e frutas secas', /castanha|amendoim|amendoa|nozes|uva-passa|banana-passa|damasco|ameixa|figo|goji|coco|fruta desidratada/],
+    ['bebidas', 'Bebidas', /agua|suco|refrigerante|cerveja|cafe|vinagre|leite|cha gelado/],
+    ['doces-snacks', 'Doces, biscoitos e snacks', /bala|biscoito|bolacha|chocolate|doce|geleia|goiabada|paçoca|pacoca|bombom|granola|cookie|marshmallow|pipoca/],
+    ['cuidados-pessoais', 'Cosméticos e cuidados pessoais', /sabonete|shampoo|creme|gel |oleo de|argila|sebo|cosmetico|hidratante|pomada/],
+    ['acessorios-utensilios', 'Acessórios e utensílios', /espremedor|descascador|fatiador|moedor|canudo|copo|chaveiro|kit |acende fogao|bomba/]
+  ];
+  for (let i = 0; i < rules.length; i++) if (rules[i][2].test(n)) return importedCategory_(rules[i][0], rules[i][1]);
+  return importedCategory_('outros-produtos', 'Outros produtos naturais');
+}
+
+function importedCategory_(idOrName, explicitName) {
+  const names = {
+    'ervas-medicinais': ['Ervas medicinais', 'Tratamento natural que equilibra corpo e mente.', 'assets/img/icones/ervas-medicinais.png'],
+    'chas-naturais': ['Chás naturais', 'Bebidas saudáveis com aromas e benefícios tradicionais.', 'assets/img/icones/chas-naturais.png'],
+    'alimentos-funcionais': ['Alimentos funcionais', 'Nutrição inteligente para sua rotina.', 'assets/img/icones/alimentos-funcionais.png'],
+    'especiarias-temperos': ['Especiarias e temperos', 'Sabor marcante para receitas e preparos naturais.', 'assets/img/icones/especiarias-temperos.png']
+  };
+  const id = slug_(idOrName);
+  const data = names[id] || [explicitName || idOrName, 'Produtos selecionados da Galeria das Ervas.', 'assets/img/icones/ervas-medicinais.png'];
+  return {id, name: data[0], description: data[1], image_url: data[2]};
+}
+
+function importedDescription_(category) { return 'Produto selecionado da Galeria das Ervas. Consulte disponibilidade, apresentação e formas de uso.'; }
+function isImportedNameForReview_(name) { return /\bteste\b|thermoro|trique|tsubassa|adicional|gotas$|encapsulados$|diversos$/.test(String(name).toLowerCase()); }
