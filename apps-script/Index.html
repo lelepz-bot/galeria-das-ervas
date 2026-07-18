@@ -1858,9 +1858,10 @@
     label{font-size:12px!important;color:#444a45!important;font-weight:650!important}.help{font-size:11px!important;line-height:1.45!important}
     .field{margin-bottom:14px}.grid{display:grid!important;grid-template-columns:1fr!important;gap:0!important}
 
-    .editor.editor-modal-open{position:fixed!important;inset:0!important;z-index:400!important;width:100%!important;height:100dvh!important;max-height:none!important;border:0!important;border-radius:0!important;padding:0!important;background:var(--premium-bg)!important;overflow:auto!important;box-shadow:none!important;animation:editorSheetIn .56s cubic-bezier(.22,1,.36,1) both!important;will-change:transform,opacity}
-    .editor.editor-modal-open.editor-modal-closing{animation:editorSheetOut .36s cubic-bezier(.4,0,1,1) both!important;pointer-events:none}
-    @keyframes editorSheetIn{from{opacity:.88;transform:translate3d(100%,0,0)}to{opacity:1;transform:translate3d(0,0,0)}}
+    .editor.editor-modal-open{position:fixed!important;inset:0!important;z-index:400!important;width:100%!important;height:100dvh!important;max-height:none!important;border:0!important;border-radius:0!important;padding:0!important;background:var(--premium-bg)!important;overflow:auto!important;box-shadow:none!important;transform:none;animation:none!important;will-change:auto}
+    .editor.editor-modal-open.editor-modal-opening{animation:editorSheetIn .56s cubic-bezier(.22,1,.36,1) both!important;will-change:transform,opacity}
+    .editor.editor-modal-open.editor-modal-closing{animation:editorSheetOut .36s cubic-bezier(.4,0,1,1) both!important;will-change:transform,opacity;pointer-events:none}
+    @keyframes editorSheetIn{from{opacity:.88;transform:translate3d(100%,0,0)}to{opacity:1;transform:none}}
     @keyframes editorSheetOut{from{opacity:1;transform:translate3d(0,0,0)}to{opacity:.9;transform:translate3d(100%,0,0)}}
     .editor-shell{min-height:100%;padding:82px 14px 110px}
     .editor-top{position:fixed;inset:0 0 auto 0;height:68px;z-index:3;display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:rgba(255,255,255,.96);border-bottom:1px solid var(--premium-line);backdrop-filter:blur(14px)}
@@ -2009,9 +2010,9 @@
     html.mobile-admin .tab{flex:0 0 82px!important;width:82px!important;min-height:66px!important;padding:7px 5px!important;border-radius:15px!important;font-size:10.5px!important;gap:5px!important;scroll-snap-align:start!important}
     html.mobile-admin .tab-icon{width:23px!important;height:23px!important}
     .mobile-nav-scroll-hint{display:none}
-    html.mobile-admin .mobile-nav-scroll-hint{position:fixed;right:0;bottom:calc(8px + env(safe-area-inset-bottom));z-index:190;width:82px;height:72px;padding:0 8px 0 25px;align-items:center;justify-content:flex-end;gap:3px;background:linear-gradient(90deg,rgba(255,255,255,0),rgba(255,255,255,.96) 34%,#fff 58%);color:#596159;font-size:9px;font-weight:750;letter-spacing:.02em;pointer-events:none;opacity:0;visibility:hidden;transform:translateX(8px);transition:opacity .24s ease,transform .24s ease,visibility 0s linear .24s}
+    html.mobile-admin .mobile-nav-scroll-hint{position:fixed;right:0;bottom:calc(8px + env(safe-area-inset-bottom));z-index:190;width:58px;height:72px;padding:0 8px 0 18px;align-items:center;justify-content:flex-end;background:linear-gradient(90deg,rgba(255,255,255,0),rgba(255,255,255,.96) 38%,#fff 62%);pointer-events:none;opacity:0;visibility:hidden;transform:translateX(8px);transition:opacity .24s ease,transform .24s ease,visibility 0s linear .24s}
     html.mobile-admin .mobile-nav-scroll-hint.visible{display:flex;opacity:1;visibility:visible;transform:translateX(0);transition-delay:0s}
-    html.mobile-admin .mobile-nav-scroll-hint .hint-arrow{display:inline-block;font-size:18px;line-height:1;animation:mobileNavHintNudge 1.35s ease-in-out infinite}
+    html.mobile-admin .mobile-nav-scroll-hint .hint-arrow{display:block;width:30px;height:30px;padding:7px;border:1px solid #e3e5e0;border-radius:50%;background:rgba(255,255,255,.98);fill:none;stroke:#4e574f;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;box-shadow:0 5px 16px rgba(21,31,23,.08);animation:mobileNavHintNudge 1.35s ease-in-out infinite}
     html.modal-open .mobile-nav-scroll-hint{opacity:0!important;visibility:hidden!important}
     @keyframes mobileNavHintNudge{0%,100%{transform:translateX(-2px);opacity:.55}50%{transform:translateX(3px);opacity:1}}
     html.mobile-admin .collection-tools{position:sticky;top:calc(var(--mobile-header) + 1px);z-index:80;margin:0 -14px 10px;padding:10px 14px;background:rgba(245,244,240,.96);backdrop-filter:blur(14px)}
@@ -2072,7 +2073,7 @@
     }
     @media(prefers-reduced-motion:reduce){
       .login-fields .field,.login-fields>.btn{opacity:1!important;transform:none!important;animation:none!important}
-      .editor.editor-modal-open,.editor.editor-modal-open.editor-modal-closing{animation-duration:.01ms!important}
+      .editor.editor-modal-opening,.editor.editor-modal-closing{animation-duration:.01ms!important}
       html.mobile-admin .mobile-nav-scroll-hint .hint-arrow{animation:none!important}
     }
 
@@ -2291,7 +2292,7 @@
   </main>
 
   <div id="mobileNavScrollHint" class="mobile-nav-scroll-hint" aria-hidden="true">
-    <span>deslize</span><span class="hint-arrow">→</span>
+    <svg class="hint-arrow" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></svg>
   </div>
 
   <div id="toast" class="toast"></div>
@@ -2580,25 +2581,33 @@ function setSettingsSaveState(state,msg=''){ const btn=$('#settingsSaveBtn'), st
 function saveSettingsUI(){ setSettingsSaveState('loading','Salvando dados...'); let imageIndex=0; const imgs=document.querySelectorAll('#settingsForm [data-image-url]'); const rows=DB.settingsRows.map((r,i)=>{ if(r.key===ADMIN_ACCESS_KEY) return {...r,active:true}; return {...r,value:r.type==='image'?imgs[imageIndex++].value:val('set_'+i),active:checked('set_active_'+i)}; }); google.script.run.withSuccessHandler(()=>{setSettingsSaveState('saved','✓ Dados salvos');init();}).withFailureHandler(e=>{setSettingsSaveState('error',e.message||String(e));toast(e.message||e)}).saveSettings(rows); }
 function openEditor(id){
  const el=$('#'+id); if(!el) return;
+ clearTimeout(el._editorOpenTimer);
  clearTimeout(el._editorCloseTimer);
- el.classList.remove('hidden','editor-modal-open','editor-modal-closing');
+ el.classList.remove('hidden','editor-modal-open','editor-modal-opening','editor-modal-closing');
  el.setAttribute('aria-hidden','false');
  void el.offsetWidth;
- el.classList.add('editor-modal-open');
+ el.classList.add('editor-modal-open','editor-modal-opening');
+ el._editorOpenTimer=setTimeout(()=>{
+  el.classList.remove('editor-modal-opening');
+  el._editorOpenTimer=0;
+ },620);
  document.documentElement.classList.add('modal-open');
  if(!el.querySelector('.editor-modal-close')){ const top=el.querySelector('.editor-top'); (top||el).insertAdjacentHTML('afterbegin','<button class="btn secondary small editor-modal-close" type="button" aria-label="Fechar" onclick="closeEditor(\''+id+'\')"></button>'); }
 }
 function finishEditorClose(el){
  if(!el) return;
+ clearTimeout(el._editorOpenTimer);
  clearTimeout(el._editorCloseTimer);
  el.classList.add('hidden');
- el.classList.remove('editor-modal-open','editor-modal-closing');
+ el.classList.remove('editor-modal-open','editor-modal-opening','editor-modal-closing');
  el.setAttribute('aria-hidden','true');
  if(!document.querySelector('.editor.editor-modal-open')) document.documentElement.classList.remove('modal-open');
 }
 function closeEditor(id){
  const el=$('#'+id); if(!el||!el.classList.contains('editor-modal-open')) return;
+ clearTimeout(el._editorOpenTimer);
  clearTimeout(el._editorCloseTimer);
+ el.classList.remove('editor-modal-opening');
  el.classList.add('editor-modal-closing');
  const reduced=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
  el._editorCloseTimer=setTimeout(()=>finishEditorClose(el),reduced?20:380);
