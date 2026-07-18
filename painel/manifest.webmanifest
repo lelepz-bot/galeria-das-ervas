@@ -1,0 +1,28 @@
+{
+  "id": "/painel/",
+  "name": "Painel | Galeria das Ervas",
+  "short_name": "Painel",
+  "description": "Painel administrativo da Galeria das Ervas",
+  "lang": "pt-BR",
+  "start_url": "/painel/?source=pwa",
+  "scope": "/painel/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#ffffff",
+  "theme_color": "#1a7b3b",
+  "categories": ["business", "productivity"],
+  "icons": [
+    {
+      "src": "/painel/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/painel/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

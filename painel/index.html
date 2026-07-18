@@ -3,14 +3,20 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <meta name="theme-color" content="#ffffff">
+  <meta name="description" content="Painel administrativo da Galeria das Ervas">
+  <meta name="application-name" content="Painel | Galeria das Ervas">
+  <meta name="theme-color" content="#1a7b3b">
+  <meta name="color-scheme" content="light">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Painel">
+  <meta name="format-detection" content="telephone=no">
   <meta name="robots" content="noindex,nofollow">
+  <link rel="manifest" href="./manifest.webmanifest">
   <link rel="icon" href="/favicon.ico" sizes="any">
   <link rel="icon" type="image/png" sizes="32x32" href="/assets/img/site/favicon-32.png">
-  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/assets/img/site/apple-touch-icon.png">
   <link rel="canonical" href="https://galeriadaservas.com.br/painel/">
   <title>Painel | Galeria das Ervas</title>
   <style>
@@ -23,6 +29,15 @@
     .loading.handoff img{filter:drop-shadow(0 8px 18px rgba(29,78,43,0))}
     .loading span{position:absolute;bottom:max(28px,env(safe-area-inset-bottom));font:500 12px/1.4 Arial,sans-serif;color:#747b75;transition:opacity .24s ease}
     .loading.handoff span{opacity:0}
+    .offline-state{position:fixed;inset:0;z-index:4;display:grid;place-items:center;padding:24px;background:#fff;color:#172019;font-family:Arial,sans-serif;text-align:center}
+    .offline-state[hidden]{display:none}
+    .offline-card{width:min(420px,100%);display:grid;justify-items:center;gap:14px}
+    .offline-card img{display:block;width:132px;height:132px;object-fit:contain;margin-bottom:6px}
+    .offline-card h1{margin:0;font-size:25px;line-height:1.15;letter-spacing:-.03em}
+    .offline-card p{max-width:340px;margin:0;color:#687068;font-size:14px;line-height:1.55}
+    .offline-card button{min-width:190px;min-height:48px;margin-top:8px;padding:12px 20px;border:0;border-radius:999px;background:#18b834;color:#fff;font:700 14px/1 Arial,sans-serif;cursor:pointer}
+    .offline-card button:focus-visible{outline:3px solid rgba(24,184,52,.28);outline-offset:3px}
+    body.is-offline .loading,body.is-offline .panel-frame{visibility:hidden}
     @media(max-width:520px){.loading img{width:min(260px,72vw)}}
     @media(prefers-reduced-motion:reduce){.loading img,.loading{transition-duration:.01ms!important;transition-delay:0s!important}}
   </style>
@@ -32,6 +47,14 @@
     <img src="../assets/img/site/logo.png" alt="Galeria das Ervas">
     <span>Carregando painel…</span>
   </div>
+  <section id="offlineState" class="offline-state" aria-live="polite" hidden>
+    <div class="offline-card">
+      <img src="/assets/img/site/favicon-192.png" alt="">
+      <h1>Você está sem conexão</h1>
+      <p>O painel precisa de internet para acessar e salvar os dados da Galeria das Ervas.</p>
+      <button id="retryButton" type="button">Tentar novamente</button>
+    </div>
+  </section>
   <iframe
     id="panelFrame"
     class="panel-frame"
@@ -44,8 +67,48 @@
     const loading=document.getElementById('loading');
     const panelFrame=document.getElementById('panelFrame');
     const loadingLogo=loading.querySelector('img');
+    const offlineState=document.getElementById('offlineState');
+    const retryButton=document.getElementById('retryButton');
     let handoffStarted=false;
     let fallbackTimer=0;
+
+    function setConnectionState(offline){
+      document.body.classList.toggle('is-offline',offline);
+      offlineState.hidden=!offline;
+      if(offline) loading.classList.add('done');
+      return offline;
+    }
+
+    function syncConnectionState(){
+      return setConnectionState(!navigator.onLine);
+    }
+
+    async function verifyPanelConnection(){
+      if(syncConnectionState()) return false;
+      const controller=new AbortController();
+      const timeout=setTimeout(()=>controller.abort(),6000);
+      try{
+        await fetch(panelFrame.src,{mode:'no-cors',cache:'no-store',signal:controller.signal});
+        setConnectionState(false);
+        return true;
+      }catch(error){
+        setConnectionState(true);
+        return false;
+      }finally{
+        clearTimeout(timeout);
+      }
+    }
+
+    retryButton.addEventListener('click',async()=>{
+      retryButton.disabled=true;
+      const reachable=await verifyPanelConnection();
+      retryButton.disabled=false;
+      if(reachable) window.location.reload();
+    });
+    window.addEventListener('offline',syncConnectionState);
+    window.addEventListener('online',verifyPanelConnection);
+    syncConnectionState();
+    verifyPanelConnection();
 
     function validLoginRect(rect){
       return rect&&[rect.left,rect.top,rect.width,rect.height].every(Number.isFinite)&&rect.width>80&&rect.height>50;
@@ -93,12 +156,20 @@
     });
 
     panelFrame.addEventListener('load',()=>{
+      if(syncConnectionState()) return;
       fallbackTimer=setTimeout(()=>{
         if(handoffStarted) return;
         loading.classList.add('handoff');
         setTimeout(()=>loading.classList.add('done'),360);
       },2600);
     });
+
+    if('serviceWorker' in navigator){
+      window.addEventListener('load',()=>{
+        navigator.serviceWorker.register('./sw.js',{scope:'./',updateViaCache:'none'})
+          .catch(error=>console.error('[Galeria das Ervas PWA] Falha ao registrar o service worker:',error));
+      });
+    }
   </script>
 </body>
 </html>
