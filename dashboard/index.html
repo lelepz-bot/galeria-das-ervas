@@ -3,6 +3,10 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#ffffff">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="robots" content="noindex,nofollow">
   <link rel="canonical" href="https://galeriadaservas.com.br/dashboard/">
   <title>Painel | Galeria das Ervas</title>
@@ -10,10 +14,14 @@
     *{box-sizing:border-box}
     html,body{width:100%;height:100%;margin:0;overflow:hidden;background:#fff}
     .panel-frame{position:fixed;inset:0;width:100%;height:100%;height:100dvh;border:0;background:#fff}
-    .loading{position:fixed;inset:0;z-index:2;display:grid;place-items:center;background:#fff;transition:opacity .35s ease,visibility .35s ease}
+    .loading{position:fixed;inset:0;z-index:2;display:grid;place-items:center;background:#fff;transition:opacity .32s ease .72s,visibility .32s ease .72s}
     .loading.done{opacity:0;visibility:hidden;pointer-events:none}
-    .loading img{display:block;width:min(270px,68vw);height:110px;object-fit:contain}
-    .loading span{position:absolute;bottom:max(28px,env(safe-area-inset-bottom));font:500 12px/1.4 Arial,sans-serif;color:#747b75}
+    .loading img{display:block;width:min(270px,68vw);height:auto;object-fit:contain;transform:translateY(0) scale(1);filter:drop-shadow(0 12px 28px rgba(29,78,43,.08));transition:transform .82s cubic-bezier(.22,1,.36,1),filter .6s ease;will-change:transform}
+    .loading.handoff img{transform:translateY(clamp(-148px,-14vh,-104px)) scale(1.22);filter:drop-shadow(0 8px 18px rgba(29,78,43,0))}
+    .loading span{position:absolute;bottom:max(28px,env(safe-area-inset-bottom));font:500 12px/1.4 Arial,sans-serif;color:#747b75;transition:opacity .24s ease}
+    .loading.handoff span{opacity:0}
+    @media(max-width:520px){.loading img{width:min(260px,72vw)}.loading.handoff img{transform:translateY(-118px) scale(1.28)}}
+    @media(prefers-reduced-motion:reduce){.loading img,.loading{transition-duration:.01ms!important}}
   </style>
 </head>
 <body>
@@ -31,7 +39,10 @@
   ></iframe>
   <script>
     const loading=document.getElementById('loading');
-    document.getElementById('panelFrame').addEventListener('load',()=>loading.classList.add('done'));
+    document.getElementById('panelFrame').addEventListener('load',()=>{
+      requestAnimationFrame(()=>loading.classList.add('handoff'));
+      setTimeout(()=>loading.classList.add('done'),860);
+    });
   </script>
 </body>
 </html>

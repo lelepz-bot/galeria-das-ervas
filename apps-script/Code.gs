@@ -167,6 +167,31 @@ function savePost(item) { adminGuard_(); return upsert_('posts', item, postHeade
 function saveTestimonial(item) { adminGuard_(); return upsert_('testimonials', item, testimonialHeader_()); }
 function saveCategory(item) { adminGuard_(); return upsert_('categories', item, categoryHeader_()); }
 function deleteProduct(id) { adminGuard_(); return setActive_('products', id, false); }
+function setProductActive(id, active) { return setProductsActive([id], active); }
+function setProductsActive(ids, active) {
+  adminGuard_();
+  const requested = new Set((Array.isArray(ids) ? ids : [ids]).map(String).filter(Boolean));
+  if (!requested.size) return {ok:true, updated:0};
+  const sh = getDb_().getSheetByName(APP.sheets.products);
+  const lastRow = sh.getLastRow();
+  if (lastRow < 2) return {ok:true, updated:0};
+  const header = sh.getRange(1,1,1,sh.getLastColumn()).getValues()[0].map(String);
+  const idCol = header.indexOf('id');
+  const activeCol = header.indexOf('active');
+  if (idCol < 0 || activeCol < 0) throw new Error('Colunas de produto não encontradas.');
+  const rows = sh.getRange(2,1,lastRow-1,sh.getLastColumn()).getValues();
+  let updated = 0;
+  const activeValues = rows.map(row => {
+    if (requested.has(String(row[idCol]))) {
+      updated++;
+      return [bool_(active)];
+    }
+    return [row[activeCol]];
+  });
+  if (updated) sh.getRange(2,activeCol+1,activeValues.length,1).setValues(activeValues);
+  clearPublicCache_();
+  return {ok:true, updated};
+}
 function deletePost(id) { adminGuard_(); return setActive_('posts', id, false, 'published'); }
 function deleteTestimonial(id) { adminGuard_(); return setActive_('testimonials', id, false); }
 
