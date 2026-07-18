@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="description" content="Instale o Painel da Galeria das Ervas no seu celular.">
+  <meta name="theme-color" content="#1a7b3b">
+  <meta name="color-scheme" content="light">
+  <meta name="robots" content="noindex,nofollow">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="icon" href="/favicon.ico" sizes="any">
+  <link rel="apple-touch-icon" href="/painel/icons/apple-touch-icon.png">
+  <link rel="stylesheet" href="./styles.css?v=20260718-1">
+  <link rel="canonical" href="https://www.galeriadaservas.com.br/instalar/">
+  <title>Instalar Painel | Galeria das Ervas</title>
+</head>
+<body>
+  <div class="page-shell">
+    <header class="brand-bar" aria-label="Galeria das Ervas">
+      <a href="/" aria-label="Voltar ao site da Galeria das Ervas">
+        <img src="/assets/img/site/logo.png" alt="Galeria das Ervas">
+      </a>
+      <span>Instalação segura</span>
+    </header>
+
+    <main id="mainContent" class="installer-layout">
+      <section class="installer-card" aria-labelledby="installerTitle">
+        <div class="app-identity">
+          <div class="app-icon-shell" aria-hidden="true">
+            <img src="/painel/icons/icon-192.png" alt="">
+            <span class="verified-mark">✓</span>
+          </div>
+          <div>
+            <p class="eyebrow">Painel Galeria das Ervas</p>
+            <p id="platformLabel" class="platform-label">Verificando seu aparelho…</p>
+          </div>
+        </div>
+
+        <div class="intro-copy">
+          <h1 id="installerTitle">Seu painel, com acesso de aplicativo.</h1>
+          <p id="installerLead">Instale o painel na tela inicial e abra tudo em um toque, sem precisar procurar o endereço novamente.</p>
+        </div>
+
+        <ul class="benefit-list" aria-label="Vantagens da instalação">
+          <li><span aria-hidden="true">⌁</span><div><b>Abre como aplicativo</b><small>Uma janela própria, sem a barra comum do navegador.</small></div></li>
+          <li><span aria-hidden="true">↗</span><div><b>Um toque para entrar</b><small>O ícone fica junto dos outros aplicativos do celular.</small></div></li>
+          <li><span aria-hidden="true">↻</span><div><b>Sempre atualizado</b><small>As melhorias chegam automaticamente pela internet.</small></div></li>
+        </ul>
+
+        <div class="install-zone">
+          <p id="stateMessage" class="state-message" aria-live="polite">Estamos identificando a melhor forma de instalar.</p>
+
+          <button id="installButton" class="primary-action" type="button" hidden>
+            <span class="button-icon" aria-hidden="true">↓</span>
+            Instalar aplicativo
+          </button>
+
+          <button id="iosGuideButton" class="primary-action" type="button" hidden>
+            <span class="button-icon share-mini" aria-hidden="true"></span>
+            Instalar no iPhone ou iPad
+          </button>
+
+          <a id="openPanelButton" class="primary-action" href="/painel/" hidden>
+            <span class="button-icon" aria-hidden="true">↗</span>
+            Abrir painel
+          </a>
+
+          <div id="waitingState" class="waiting-state" hidden>
+            <span class="loading-ring" aria-hidden="true"></span>
+            <span>Preparando a instalação no navegador…</span>
+          </div>
+
+          <div id="manualInstallHelp" class="manual-help" hidden>
+            <p><b>Se o botão não aparecer:</b></p>
+            <ol>
+              <li>Toque nos três pontos <b>⋮</b> do navegador.</li>
+              <li>Escolha <b>Adicionar à tela inicial</b> ou <b>Instalar app</b>.</li>
+              <li>Confirme em <b>Instalar</b>.</li>
+            </ol>
+          </div>
+
+          <button id="manualHelpButton" class="text-action" type="button" aria-expanded="false" hidden>Ver instalação pelo menu</button>
+
+          <div id="inAppState" class="in-app-state" hidden>
+            <div class="in-app-heading">
+              <span aria-hidden="true">↗</span>
+              <div><b>Abra no navegador para instalar</b><small id="inAppInstructions">Use o menu deste aplicativo e escolha abrir no navegador.</small></div>
+            </div>
+            <div class="helper-actions">
+              <a id="openExternalButton" class="secondary-action" href="#" hidden>Abrir no Chrome</a>
+              <button id="copyAddressButton" class="secondary-action" type="button">Copiar endereço</button>
+            </div>
+          </div>
+
+          <a id="continueBrowserLink" class="continue-link" href="/painel/">Continuar pelo navegador</a>
+        </div>
+
+        <p class="privacy-note"><span aria-hidden="true">○</span> A instalação não pede acesso a fotos, contatos ou localização.</p>
+      </section>
+
+      <aside class="app-preview" aria-label="Prévia do aplicativo instalado">
+        <div class="preview-glow"></div>
+        <div class="phone-frame">
+          <div class="phone-speaker"></div>
+          <div class="phone-screen">
+            <div class="screen-status"><span>9:41</span><span>● ◒</span></div>
+            <div class="screen-content">
+              <img src="/painel/icons/icon-192.png" alt="">
+              <small>PAINEL</small>
+              <b>Galeria das Ervas</b>
+              <span class="screen-line"></span>
+              <span class="screen-line short"></span>
+              <span class="screen-button">Abrir painel</span>
+            </div>
+          </div>
+        </div>
+        <p>Depois de instalado, o painel aparece assim entre seus aplicativos.</p>
+      </aside>
+    </main>
+
+    <footer class="page-footer">
+      <span>Galeria das Ervas</span>
+      <a href="/painel/">Acessar sem instalar</a>
+    </footer>
+  </div>
+
+  <div id="iosTutorial" class="tutorial-backdrop" role="presentation" hidden>
+    <div id="sharePointer" class="share-pointer" aria-hidden="true">
+      <span class="pointer-label">Toque no Compartilhar</span>
+      <span class="pointer-arrow"></span>
+      <span class="share-symbol"></span>
+    </div>
+
+    <section class="tutorial-dialog" role="dialog" aria-modal="true" aria-labelledby="tutorialTitle" aria-describedby="tutorialDescription">
+      <button id="closeTutorialButton" class="dialog-close" type="button" aria-label="Fechar instruções">×</button>
+      <p class="eyebrow">Instalação no iPhone e iPad</p>
+      <h2 id="tutorialTitle">Só faltam dois toques.</h2>
+      <p id="tutorialDescription">A Apple pede que a instalação seja confirmada pelo menu de compartilhamento.</p>
+
+      <ol class="ios-steps">
+        <li>
+          <span class="step-number">1</span>
+          <div class="step-copy"><b>Toque em Compartilhar</b><small id="sharePositionText">Procure o símbolo na barra do navegador.</small></div>
+          <span class="share-symbol inline-share" aria-hidden="true"></span>
+        </li>
+        <li>
+          <span class="step-number">2</span>
+          <div class="step-copy"><b>Adicionar à Tela de Início</b><small>Role o menu, toque nessa opção e confirme em Adicionar.</small></div>
+          <span class="home-add-symbol" aria-hidden="true">＋</span>
+        </li>
+      </ol>
+
+      <div class="dialog-actions">
+        <button id="alreadyAddedButton" class="primary-action" type="button">Já adicionei</button>
+        <button id="cancelTutorialButton" class="text-action" type="button">Cancelar</button>
+      </div>
+    </section>
+  </div>
+
+  <div id="toast" class="toast" role="status" aria-live="polite" aria-atomic="true" hidden></div>
+
+  <script type="module" src="./install.js?v=20260718-1"></script>
+</body>
+</html>

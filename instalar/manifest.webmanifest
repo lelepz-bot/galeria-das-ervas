@@ -1,0 +1,36 @@
+{
+  "id": "/painel/",
+  "name": "Painel | Galeria das Ervas",
+  "short_name": "Painel",
+  "description": "Painel administrativo da Galeria das Ervas",
+  "lang": "pt-BR",
+  "start_url": "/painel/index.html",
+  "scope": "/painel/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#ffffff",
+  "theme_color": "#1a7b3b",
+  "categories": ["business", "productivity"],
+  "prefer_related_applications": false,
+  "related_applications": [
+    {
+      "platform": "webapp",
+      "url": "https://www.galeriadaservas.com.br/painel/manifest.webmanifest",
+      "id": "https://www.galeriadaservas.com.br/painel/"
+    }
+  ],
+  "icons": [
+    {
+      "src": "/painel/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/painel/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
