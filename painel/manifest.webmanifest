@@ -4,7 +4,7 @@
   "short_name": "Painel",
   "description": "Painel administrativo da Galeria das Ervas",
   "lang": "pt-BR",
-  "start_url": "/painel/?source=pwa",
+  "start_url": "/painel/index.html",
   "scope": "/painel/",
   "display": "standalone",
   "orientation": "portrait-primary",

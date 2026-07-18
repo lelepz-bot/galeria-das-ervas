@@ -1,4 +1,4 @@
-const CACHE_NAME='gde-painel-shell-v2';
+const CACHE_NAME='gde-painel-shell-v3';
 const OFFLINE_URL='/painel/offline.html';
 const CORE_ASSETS=[
   '/painel/',
