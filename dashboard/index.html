@@ -14,14 +14,14 @@
     *{box-sizing:border-box}
     html,body{width:100%;height:100%;margin:0;overflow:hidden;background:#fff}
     .panel-frame{position:fixed;inset:0;width:100%;height:100%;height:100dvh;border:0;background:#fff}
-    .loading{position:fixed;inset:0;z-index:2;display:grid;place-items:center;background:#fff;transition:opacity .32s ease .72s,visibility .32s ease .72s}
+    .loading{position:fixed;inset:0;z-index:2;display:grid;place-items:center;background:#fff;transition:opacity .34s ease,visibility 0s linear .34s}
     .loading.done{opacity:0;visibility:hidden;pointer-events:none}
-    .loading img{display:block;width:min(270px,68vw);height:auto;object-fit:contain;transform:translateY(0) scale(1);filter:drop-shadow(0 12px 28px rgba(29,78,43,.08));transition:transform .82s cubic-bezier(.22,1,.36,1),filter .6s ease;will-change:transform}
-    .loading.handoff img{transform:translateY(clamp(-148px,-14vh,-104px)) scale(1.22);filter:drop-shadow(0 8px 18px rgba(29,78,43,0))}
+    .loading img{position:fixed;left:50%;top:50%;display:block;width:min(270px,68vw);height:auto;object-fit:contain;transform:translate(-50%,-50%);filter:drop-shadow(0 12px 28px rgba(29,78,43,.08));transition:left .9s cubic-bezier(.22,1,.36,1),top .9s cubic-bezier(.22,1,.36,1),width .9s cubic-bezier(.22,1,.36,1),height .9s cubic-bezier(.22,1,.36,1),filter .7s ease;will-change:left,top,width,height}
+    .loading.handoff img{filter:drop-shadow(0 8px 18px rgba(29,78,43,0))}
     .loading span{position:absolute;bottom:max(28px,env(safe-area-inset-bottom));font:500 12px/1.4 Arial,sans-serif;color:#747b75;transition:opacity .24s ease}
     .loading.handoff span{opacity:0}
-    @media(max-width:520px){.loading img{width:min(260px,72vw)}.loading.handoff img{transform:translateY(-118px) scale(1.25)}}
-    @media(prefers-reduced-motion:reduce){.loading img,.loading{transition-duration:.01ms!important}}
+    @media(max-width:520px){.loading img{width:min(260px,72vw)}}
+    @media(prefers-reduced-motion:reduce){.loading img,.loading{transition-duration:.01ms!important;transition-delay:0s!important}}
   </style>
 </head>
 <body>
@@ -39,9 +39,62 @@
   ></iframe>
   <script>
     const loading=document.getElementById('loading');
-    document.getElementById('panelFrame').addEventListener('load',()=>{
-      requestAnimationFrame(()=>loading.classList.add('handoff'));
-      setTimeout(()=>loading.classList.add('done'),860);
+    const panelFrame=document.getElementById('panelFrame');
+    const loadingLogo=loading.querySelector('img');
+    let handoffStarted=false;
+    let fallbackTimer=0;
+
+    function validLoginRect(rect){
+      return rect&&[rect.left,rect.top,rect.width,rect.height].every(Number.isFinite)&&rect.width>80&&rect.height>50;
+    }
+
+    function beginExactHandoff(data,source){
+      if(handoffStarted||!validLoginRect(data.rect)) return;
+      if(!loadingLogo.complete){
+        loadingLogo.addEventListener('load',()=>beginExactHandoff(data,source),{once:true});
+        return;
+      }
+      handoffStarted=true;
+      clearTimeout(fallbackTimer);
+      const start=loadingLogo.getBoundingClientRect();
+      const sourceViewport=data.viewport||{};
+      const ratioX=sourceViewport.width>0?window.innerWidth/sourceViewport.width:1;
+      const ratioY=sourceViewport.height>0?window.innerHeight/sourceViewport.height:1;
+      const target={
+        left:data.rect.left*ratioX,
+        top:data.rect.top*ratioY,
+        width:data.rect.width*ratioX,
+        height:data.rect.height*ratioY
+      };
+      Object.assign(loadingLogo.style,{
+        left:start.left+'px',top:start.top+'px',width:start.width+'px',height:start.height+'px',transform:'none'
+      });
+      loadingLogo.getBoundingClientRect();
+      requestAnimationFrame(()=>{
+        loading.classList.add('handoff');
+        Object.assign(loadingLogo.style,{
+          left:target.left+'px',top:target.top+'px',width:target.width+'px',height:target.height+'px'
+        });
+      });
+      setTimeout(()=>source?.postMessage({type:'gde-login-reveal'},'*'),820);
+      setTimeout(()=>loading.classList.add('done'),920);
+    }
+
+    window.addEventListener('message',event=>{
+      const data=event.data;
+      if(data?.type!=='gde-login-target') return;
+      let host='';
+      try{host=new URL(event.origin).hostname}catch(error){return}
+      if(host!=='script.google.com'&&!host.endsWith('script.googleusercontent.com')) return;
+      beginExactHandoff(data,event.source);
+    });
+
+    panelFrame.addEventListener('load',()=>{
+      fallbackTimer=setTimeout(()=>{
+        if(handoffStarted) return;
+        loading.classList.add('handoff');
+        setTimeout(()=>loading.classList.add('done'),360);
+      },2600);
     });
   </script>
 </body>
