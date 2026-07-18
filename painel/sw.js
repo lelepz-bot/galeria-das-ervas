@@ -1,16 +1,16 @@
-const CACHE_NAME='gde-painel-shell-v1';
+const CACHE_NAME='gde-painel-shell-v2';
 const OFFLINE_URL='/painel/offline.html';
 const CORE_ASSETS=[
   '/painel/',
   '/painel/index.html',
   '/painel/manifest.webmanifest',
+  '/painel/icons/apple-touch-icon.png',
   '/painel/icons/icon-192.png',
   '/painel/icons/icon-512.png',
   OFFLINE_URL,
   '/assets/img/site/logo.png',
   '/assets/img/site/favicon-192.png',
-  '/assets/img/site/favicon-512.png',
-  '/assets/img/site/apple-touch-icon.png'
+  '/assets/img/site/favicon-512.png'
 ];
 
 self.addEventListener('install',event=>{
