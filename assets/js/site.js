@@ -104,11 +104,20 @@ const CATEGORY_ICON_MAP={
  'ervas-medicinais':'assets/img/icones/ervas-medicinais.png',
  'chas-naturais':'assets/img/icones/chas-naturais.png',
  'alimentos-funcionais':'assets/img/icones/alimentos-funcionais.png',
- 'especiarias-temperos':'assets/img/icones/especiarias-temperos.png'
+ 'especiarias-temperos':'assets/img/icones/especiarias-temperos.png',
+ 'suplementos-encapsulados':'assets/img/icones/suplementos-encapsulados.png',
+ 'outros-produtos':'assets/img/icones/outros-produtos.png',
+ 'acessorios-utensilios':'assets/img/icones/acessorios-utensilios.png',
+ 'castanhas-frutas-secas':'assets/img/icones/castanhas-frutas-secas.png',
+ 'bebidas':'assets/img/icones/bebidas.png',
+ 'graos-farinhas-sementes':'assets/img/icones/graos-farinhas-sementes.png',
+ 'cuidados-pessoais':'assets/img/icones/cuidados-pessoais.png',
+ 'doces-snacks':'assets/img/icones/doces-snacks.png',
+ 'ingredientes-culinarios':'assets/img/icones/ingredientes-culinarios.png'
 };
 const HOME_CATEGORY_ORDER=['ervas-medicinais','chas-naturais','alimentos-funcionais','especiarias-temperos'];
 const HOME_CATEGORY_NAMES={'ervas-medicinais':'ERVAS MEDICINAIS','chas-naturais':'CHÁS NATURAIS','alimentos-funcionais':'ALIMENTOS FUNCIONAIS E ESPECIAIS','especiarias-temperos':'TEMPEROS'};
-function categoryIcon(c){return c?.image_url||CATEGORY_ICON_MAP[c?.id||c]||'assets/img/icones/ervas-medicinais.png'}
+function categoryIcon(c){return CATEGORY_ICON_MAP[c?.id||c]||c?.image_url||'assets/img/icones/ervas-medicinais.png'}
 function productImage(p){return p?.image_url||PRODUCT_IMAGE_MAP[p?.id]||'assets/img/site/hero-ervas.png'}
 window.handleImageError=function(img){let id=img.dataset.productId; img.onerror=null; img.src=PRODUCT_IMAGE_MAP[id]||'assets/img/site/hero-ervas.png'}
 function selectedIds(){try{return JSON.parse(localStorage.getItem('gde_interest')||'[]')}catch(e){return []}}

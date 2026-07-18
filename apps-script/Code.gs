@@ -19,6 +19,25 @@ const APP = {
   }
 };
 const PUBLIC_CACHE_KEY = 'publicData:v1';
+const CATEGORY_ICONS = {
+  'ervas-medicinais': 'assets/img/icones/ervas-medicinais.png',
+  'chas-naturais': 'assets/img/icones/chas-naturais.png',
+  'alimentos-funcionais': 'assets/img/icones/alimentos-funcionais.png',
+  'especiarias-temperos': 'assets/img/icones/especiarias-temperos.png',
+  'suplementos-encapsulados': 'assets/img/icones/suplementos-encapsulados.png',
+  'outros-produtos': 'assets/img/icones/outros-produtos.png',
+  'acessorios-utensilios': 'assets/img/icones/acessorios-utensilios.png',
+  'castanhas-frutas-secas': 'assets/img/icones/castanhas-frutas-secas.png',
+  'bebidas': 'assets/img/icones/bebidas.png',
+  'graos-farinhas-sementes': 'assets/img/icones/graos-farinhas-sementes.png',
+  'cuidados-pessoais': 'assets/img/icones/cuidados-pessoais.png',
+  'doces-snacks': 'assets/img/icones/doces-snacks.png',
+  'ingredientes-culinarios': 'assets/img/icones/ingredientes-culinarios.png'
+};
+
+function withCategoryIcon_(row) {
+  return Object.assign({}, row, {image_url: CATEGORY_ICONS[String(row.id || '')] || row.image_url || CATEGORY_ICONS['ervas-medicinais']});
+}
 
 function doGet(e) {
   ensureSetup_();
@@ -64,7 +83,7 @@ function getPublicData() {
   const data = {
     ok: true,
     settings,
-    categories: readRows_(ss.getSheetByName(APP.sheets.categories)).filter(r => bool_(r.active)).sort((a,b)=>(Number(a.order)||999)-(Number(b.order)||999)),
+    categories: readRows_(ss.getSheetByName(APP.sheets.categories)).map(withCategoryIcon_).filter(r => bool_(r.active)).sort((a,b)=>(Number(a.order)||999)-(Number(b.order)||999)),
     products: readRows_(ss.getSheetByName(APP.sheets.products)).filter(r => bool_(r.active)).sort((a,b)=>(Number(a.order)||999)-(Number(b.order)||999)),
     posts: readRows_(ss.getSheetByName(APP.sheets.posts)).filter(r => bool_(r.published)),
     testimonials: readRows_(ss.getSheetByName(APP.sheets.testimonials)).filter(r => bool_(r.active))
@@ -85,7 +104,7 @@ function getAdminData() {
     folderUrl: getImageFolder_().getUrl(),
     settingsRows: readRows_(ss.getSheetByName(APP.sheets.settings)),
     settings: settingsObject_(readRows_(ss.getSheetByName(APP.sheets.settings))),
-    categories: readRows_(ss.getSheetByName(APP.sheets.categories)).sort((a,b)=>(Number(a.order)||999)-(Number(b.order)||999)),
+    categories: readRows_(ss.getSheetByName(APP.sheets.categories)).map(withCategoryIcon_).sort((a,b)=>(Number(a.order)||999)-(Number(b.order)||999)),
     products: readRows_(ss.getSheetByName(APP.sheets.products)),
     posts: readRows_(ss.getSheetByName(APP.sheets.posts)),
     testimonials: readRows_(ss.getSheetByName(APP.sheets.testimonials)),
