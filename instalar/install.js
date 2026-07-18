@@ -1,7 +1,10 @@
 const PANEL_URL = '/painel/';
 const INSTALL_URL = 'https://www.galeriadaservas.com.br/instalar/';
-const INSTALL_HINT_KEY = 'gde_panel_install_hint_v1';
+const INSTALL_HINT_KEY = 'gde_panel_install_hint_v2';
+const LEGACY_INSTALL_HINT_KEY = 'gde_panel_install_hint_v1';
 const INSTALL_HINT_MAX_AGE = 1000 * 60 * 60 * 24 * 180;
+const DEFAULT_TITLE = 'Seu painel, com acesso de aplicativo.';
+const DEFAULT_LEAD = 'Instale o painel na tela inicial e abra tudo em um toque, sem precisar procurar o endereço novamente.';
 
 const STRINGS = {
   checking: 'Verificando seu aparelho…',
@@ -32,7 +35,8 @@ const elements = {
   inAppInstructions: document.querySelector('#inAppInstructions'),
   openExternalButton: document.querySelector('#openExternalButton'),
   copyAddressButton: document.querySelector('#copyAddressButton'),
-  continueBrowserLink: document.querySelector('#continueBrowserLink'),
+  iosCompletionState: document.querySelector('#iosCompletionState'),
+  repeatIosButton: document.querySelector('#repeatIosButton'),
   tutorial: document.querySelector('#iosTutorial'),
   dialog: document.querySelector('.tutorial-dialog'),
   closeTutorialButton: document.querySelector('#closeTutorialButton'),
@@ -103,6 +107,7 @@ function saveInstallHint() {
 function clearInstallHint() {
   try {
     localStorage.removeItem(INSTALL_HINT_KEY);
+    localStorage.removeItem(LEGACY_INSTALL_HINT_KEY);
   } catch (error) {}
 }
 
@@ -134,10 +139,16 @@ function hideActionStates() {
   elements.manualHelpButton.hidden = true;
   elements.manualInstallHelp.hidden = true;
   elements.inAppState.hidden = true;
+  elements.iosCompletionState.hidden = true;
 }
 
 function setMessage(message) {
   elements.stateMessage.textContent = message;
+}
+
+function restoreInstallCopy() {
+  elements.title.textContent = DEFAULT_TITLE;
+  elements.lead.textContent = DEFAULT_LEAD;
 }
 
 function showToast(message) {
@@ -160,14 +171,15 @@ function renderInstalled() {
   elements.lead.textContent = 'Abra pelo ícone da tela inicial ou continue diretamente para o painel.';
   setMessage('A instalação foi identificada neste aparelho.');
   elements.openPanelButton.hidden = false;
-  elements.continueBrowserLink.hidden = true;
 }
 
 function renderInstallReady() {
-  if (platform?.isInApp || platform?.isIOS || installed) return;
+  if (platform?.isInApp || platform?.isIOS) return;
+  installed = false;
   clearTimeout(fallbackTimer);
   clearInstallHint();
   hideActionStates();
+  restoreInstallCopy();
   elements.platformLabel.textContent = STRINGS.ready;
   setMessage('O navegador confirmou que o aplicativo pode ser instalado.');
   elements.installButton.hidden = false;
@@ -205,6 +217,13 @@ function renderIOS() {
   elements.iosGuideButton.hidden = false;
 }
 
+function renderIOSCompletion() {
+  hideActionStates();
+  elements.platformLabel.textContent = STRINGS.ios;
+  setMessage('A instalação termina fora desta página, na Tela de Início do aparelho.');
+  elements.iosCompletionState.hidden = false;
+}
+
 function renderAndroidWaiting() {
   hideActionStates();
   elements.platformLabel.textContent = platform.isChromium ? STRINGS.android : 'Android · navegador sem instalação automática';
@@ -224,8 +243,16 @@ function renderAndroidWaiting() {
 function renderDesktop() {
   hideActionStates();
   elements.platformLabel.textContent = STRINGS.desktop;
-  setMessage('Este instalador foi otimizado para celular. Você também pode usar o painel neste navegador.');
-  elements.openPanelButton.hidden = false;
+  elements.waitingState.hidden = false;
+  elements.waitingState.querySelector('span:last-child').textContent = 'Aguardando o navegador liberar a instalação…';
+  setMessage('No computador, use Chrome ou Edge para instalar o painel como aplicativo.');
+
+  fallbackTimer = window.setTimeout(() => {
+    if (deferredPrompt || installed) return;
+    elements.waitingState.hidden = true;
+    elements.manualHelpButton.hidden = false;
+    setMessage('Use o menu do navegador e escolha Instalar Painel ou Instalar aplicativo.');
+  }, 4000);
 }
 
 async function installApp() {
@@ -348,10 +375,11 @@ function trapTutorialFocus(event) {
 }
 
 function confirmIOSInstall() {
-  saveInstallHint();
   closeIOSTutorial();
-  showToast('Perfeito. O painel está pronto para abrir.');
-  renderInstalled();
+  window.setTimeout(() => {
+    renderIOSCompletion();
+    showToast('Procure agora o ícone Painel na Tela de Início.');
+  }, 260);
 }
 
 function toggleManualHelp() {
@@ -371,6 +399,8 @@ async function registerPanelServiceWorker() {
 window.addEventListener('beforeinstallprompt', event => {
   event.preventDefault();
   deferredPrompt = event;
+  installed = false;
+  clearInstallHint();
   if (platform) renderInstallReady();
 });
 
@@ -385,6 +415,7 @@ elements.iosGuideButton.addEventListener('click', openIOSTutorial);
 elements.closeTutorialButton.addEventListener('click', closeIOSTutorial);
 elements.cancelTutorialButton.addEventListener('click', closeIOSTutorial);
 elements.alreadyAddedButton.addEventListener('click', confirmIOSInstall);
+elements.repeatIosButton.addEventListener('click', openIOSTutorial);
 elements.copyAddressButton.addEventListener('click', copyInstallAddress);
 elements.manualHelpButton.addEventListener('click', toggleManualHelp);
 elements.tutorial.addEventListener('click', event => {
@@ -397,6 +428,7 @@ window.addEventListener('resize', updateIOSPointer, {passive: true});
 async function init() {
   platform = detectPlatform();
   registerPanelServiceWorker();
+  try { localStorage.removeItem(LEGACY_INSTALL_HINT_KEY); } catch (error) {}
   installed = await detectInstalledState();
 
   if (installed) {

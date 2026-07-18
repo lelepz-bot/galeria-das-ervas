@@ -24,7 +24,7 @@ a{color:inherit}
 button:focus-visible,a:focus-visible{outline:3px solid rgba(33,182,75,.28);outline-offset:4px}
 .page-shell{min-height:100vh;min-height:100dvh;display:flex;flex-direction:column;padding:env(safe-area-inset-top) max(18px,env(safe-area-inset-right)) env(safe-area-inset-bottom) max(18px,env(safe-area-inset-left))}
 .brand-bar{width:min(1180px,100%);min-height:84px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(23,32,25,.08)}
-.brand-bar a{display:inline-flex;align-items:center}
+.brand-home{display:inline-flex;align-items:center}
 .brand-bar img{display:block;width:118px;height:64px;object-fit:contain}
 .brand-bar span{display:inline-flex;align-items:center;gap:8px;color:#526057;font-size:12px;font-weight:750;letter-spacing:.08em;text-transform:uppercase}
 .brand-bar span::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--green-bright);box-shadow:0 0 0 5px rgba(33,182,75,.12)}
@@ -62,7 +62,12 @@ button:focus-visible,a:focus-visible{outline:3px solid rgba(33,182,75,.28);outli
 .manual-help ol{margin:0;padding-left:19px}
 .manual-help li+li{margin-top:4px}
 .text-action{justify-self:center;padding:8px 12px;background:transparent;color:var(--green);font-size:13px;font-weight:800}
-.continue-link{justify-self:center;padding:7px;color:#5c675f;font-size:13px;font-weight:700;text-underline-offset:4px}
+.completion-state{display:grid;grid-template-columns:44px minmax(0,1fr);align-items:start;gap:13px;padding:17px;border:1px solid #cfe3cf;border-radius:18px;background:#f1f8ef}
+.completion-icon{width:44px;height:44px;display:grid;place-items:center;border-radius:14px;background:var(--green);color:#fff;font-size:20px;font-weight:900}
+.completion-state>div{display:grid;gap:5px;padding-top:2px}
+.completion-state b{font-size:14px}
+.completion-state p{margin:0;color:var(--muted);font-size:12px;line-height:1.45}
+.completion-state .secondary-action{grid-column:1/-1;width:100%;margin-top:2px}
 .in-app-state{display:grid;gap:16px;padding:18px;border:1px solid #d8e3d7;border-radius:18px;background:#f4f8f2}
 .in-app-heading{display:grid;grid-template-columns:38px 1fr;align-items:start;gap:12px}
 .in-app-heading>span{width:38px;height:38px;display:grid;place-items:center;border-radius:12px;background:#dff1de;color:var(--green);font-size:20px;font-weight:900}
@@ -89,7 +94,6 @@ button:focus-visible,a:focus-visible{outline:3px solid rgba(33,182,75,.28);outli
 .screen-button{width:100%;margin-top:48px;padding:15px;border-radius:15px;background:var(--green-bright);color:#0d3017;font-size:12px;font-weight:850}
 .app-preview>p{position:absolute;bottom:2px;max-width:340px;margin:0;color:#6a756d;font-size:13px;line-height:1.5;text-align:center}
 .page-footer{width:min(1180px,100%);min-height:72px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;border-top:1px solid rgba(23,32,25,.08);color:#737d76;font-size:11px}
-.page-footer a{text-underline-offset:4px}
 .tutorial-open{overflow:hidden}
 .tutorial-backdrop{position:fixed;inset:0;z-index:50;display:flex;align-items:flex-end;justify-content:center;padding:18px max(14px,env(safe-area-inset-right)) max(18px,env(safe-area-inset-bottom)) max(14px,env(safe-area-inset-left));background:rgba(10,20,13,0);backdrop-filter:blur(0);transition:background .24s ease,backdrop-filter .24s ease}
 .tutorial-backdrop.visible{background:rgba(10,20,13,.58);backdrop-filter:blur(7px)}

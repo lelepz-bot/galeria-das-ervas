@@ -10,16 +10,16 @@
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="icon" href="/favicon.ico" sizes="any">
   <link rel="apple-touch-icon" href="/painel/icons/apple-touch-icon.png">
-  <link rel="stylesheet" href="./styles.css?v=20260718-1">
+  <link rel="stylesheet" href="./styles.css?v=20260718-2">
   <link rel="canonical" href="https://www.galeriadaservas.com.br/instalar/">
   <title>Instalar Painel | Galeria das Ervas</title>
 </head>
 <body>
   <div class="page-shell">
     <header class="brand-bar" aria-label="Galeria das Ervas">
-      <a href="/" aria-label="Voltar ao site da Galeria das Ervas">
+      <div class="brand-home">
         <img src="/assets/img/site/logo.png" alt="Galeria das Ervas">
-      </a>
+      </div>
       <span>Instalação segura</span>
     </header>
 
@@ -92,7 +92,14 @@
             </div>
           </div>
 
-          <a id="continueBrowserLink" class="continue-link" href="/painel/">Continuar pelo navegador</a>
+          <div id="iosCompletionState" class="completion-state" hidden>
+            <span class="completion-icon" aria-hidden="true">✓</span>
+            <div>
+              <b>Agora abra pela Tela de Início</b>
+              <p>Procure o ícone <strong>Painel</strong> junto dos seus aplicativos. Se ele não apareceu, repita os passos.</p>
+            </div>
+            <button id="repeatIosButton" class="secondary-action" type="button">Rever instruções</button>
+          </div>
         </div>
 
         <p class="privacy-note"><span aria-hidden="true">○</span> A instalação não pede acesso a fotos, contatos ou localização.</p>
@@ -120,7 +127,7 @@
 
     <footer class="page-footer">
       <span>Galeria das Ervas</span>
-      <a href="/painel/">Acessar sem instalar</a>
+      <span>Instalador do painel</span>
     </footer>
   </div>
 
@@ -151,14 +158,14 @@
       </ol>
 
       <div class="dialog-actions">
-        <button id="alreadyAddedButton" class="primary-action" type="button">Já adicionei</button>
-        <button id="cancelTutorialButton" class="text-action" type="button">Cancelar</button>
+        <button id="alreadyAddedButton" class="primary-action" type="button">Já toquei em Adicionar</button>
+        <button id="cancelTutorialButton" class="text-action" type="button">Voltar</button>
       </div>
     </section>
   </div>
 
   <div id="toast" class="toast" role="status" aria-live="polite" aria-atomic="true" hidden></div>
 
-  <script type="module" src="./install.js?v=20260718-1"></script>
+  <script type="module" src="./install.js?v=20260718-2"></script>
 </body>
 </html>
