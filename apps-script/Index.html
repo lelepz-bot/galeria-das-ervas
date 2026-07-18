@@ -1820,6 +1820,15 @@
     .content-card p{font-size:13px;line-height:1.5;margin:0;color:var(--premium-muted)}
     .content-card-meta{display:flex;gap:7px;align-items:center;flex-wrap:wrap}
     .content-card-actions{display:flex;align-items:center;gap:8px;margin-top:auto;padding:0 16px 16px}
+    .manage-grid{margin-top:14px}
+    .manage-card{min-height:100%}
+    .manage-card-visual{height:148px;display:grid;place-items:center;background:linear-gradient(145deg,#faf9f5,#f0efe9);border-bottom:1px solid var(--premium-line);overflow:hidden}
+    .manage-card-visual img{display:block;object-fit:cover}
+    .testimonial-admin-card .manage-card-visual img{width:94px;height:94px;border-radius:50%;border:5px solid #fff;box-shadow:0 10px 28px rgba(20,25,21,.12)}
+    .category-admin-card .manage-card-visual img{width:106px;height:106px;object-fit:contain;filter:drop-shadow(0 10px 18px rgba(20,25,21,.09))}
+    .manage-card .content-card-body{padding-bottom:14px}
+    .manage-card .card-description{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+    .manage-card .content-card-actions{border-top:1px solid var(--premium-line);padding-top:12px;margin:0 16px 16px}
     .post-edit-btn{min-height:42px;border:1px solid var(--premium-ink);border-radius:11px;background:var(--premium-ink);color:#fff;padding:9px 14px;display:inline-flex;align-items:center;justify-content:center;gap:8px;font-size:12px;font-weight:650;cursor:pointer;flex:1}
     .post-edit-btn svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:1.8}
     .post-more-btn{width:42px;height:42px;min-height:42px;border:1px solid var(--premium-line);border-radius:11px;background:#fff;color:#6d736d;display:grid;place-items:center;font-size:18px;letter-spacing:1px;cursor:pointer;flex:0 0 42px}
@@ -1858,6 +1867,15 @@
     .editor-section{background:#fff;border:1px solid var(--premium-line);border-radius:20px;padding:17px;margin-bottom:12px}
     .editor-section-title{margin:0 0 16px;padding-bottom:12px;border-bottom:1px solid var(--premium-line)}
     .editor-section-title h3{margin:0 0 4px;font-size:15px;font-weight:650}.editor-section-title p{margin:0;color:var(--premium-muted);font-size:11px;line-height:1.45}
+    .editor-section>.field:last-child,.editor-section>.grid:last-child .field{margin-bottom:0}
+    .compact-field{max-width:220px}
+    .image-upload-control{display:grid;gap:10px}
+    .image-upload-control>label{margin-bottom:0!important}
+    .image-upload-actions{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:9px;align-items:center}
+    .image-file-input{min-width:0!important;padding:7px!important;background:#faf9f6!important}
+    .image-file-input::file-selector-button{border:0;border-radius:9px;background:#ebeae5;color:var(--premium-ink);padding:8px 10px;margin-right:10px;font:inherit;font-size:11px;font-weight:650;cursor:pointer}
+    .image-upload-actions .btn{min-height:50px!important}
+    .image-upload-control .preview{width:100%!important;max-width:260px!important;height:150px!important;max-height:150px!important;margin:2px 0 0!important;background:#f4f3ef!important}
     .editor-footer{position:fixed;left:0;right:0;bottom:0;z-index:3;padding:10px 14px calc(10px + env(safe-area-inset-bottom));background:rgba(255,255,255,.96);border-top:1px solid var(--premium-line);display:grid;grid-template-columns:1fr 1fr;gap:8px;backdrop-filter:blur(14px)}
     .editor-footer .btn:first-child{background:var(--premium-green)!important;color:#102116!important}
     .choice-row{display:grid;grid-template-columns:1fr;gap:8px}.choice-card{display:flex!important;align-items:center;gap:10px;margin:0!important;padding:12px 14px;border:1px solid var(--premium-line);border-radius:14px;background:var(--premium-soft)}
@@ -1895,6 +1913,7 @@
 
     @media(min-width:720px){
       .collection-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:14px!important}.grid .field{margin:0}.choice-row{grid-template-columns:repeat(2,1fr)}
+      .image-upload-actions{grid-template-columns:minmax(0,1fr) 150px}
       #settingsForm{grid-template-columns:1fr!important;align-items:start}.settings-group{grid-column:1!important}
     }
     @media(min-width:960px) and (pointer:fine){
@@ -2007,6 +2026,9 @@
     html.mobile-admin .settings-row{padding:15px!important}
     html.mobile-admin .editor-shell{padding:82px 12px 104px!important}
     html.mobile-admin .editor-section{border-radius:17px!important;padding:15px!important}
+    html.mobile-admin .image-upload-actions{grid-template-columns:1fr!important}
+    html.mobile-admin .image-upload-actions .btn{width:100%!important}
+    html.mobile-admin .compact-field{max-width:none}
     html.mobile-admin .login-screen{padding:12px!important}
     html.mobile-admin .login-card{width:100%!important;max-width:430px!important;padding:24px 20px 28px!important;border:0!important;box-shadow:none!important;background:#fff!important}
     html.mobile-admin .login-logo .brand-mark{width:min(340px,88vw)!important;max-width:340px!important;height:min(226px,58vw)!important;max-height:226px!important}
@@ -2348,31 +2370,66 @@ document.addEventListener('click',e=>{
 });
 document.addEventListener('keydown',e=>{ if(e.key==='Escape') setMobileMenu(false); });
 function toast(msg){const t=$('#toast');t.textContent=msg;t.style.display='block';setTimeout(()=>t.style.display='none',3200)}
+let loginTeaTimer=0;
+let panelLoadSequence=0;
 function handleLogin(e){
   e.preventDefault();
   const screen=$('#loginScreen'), card=$('#loginCard'), btn=$('#loginButton'), status=$('#loginStatus');
+  clearTimeout(loginTeaTimer);
   if(card) card.classList.add('login-submitting');
   if(btn) btn.disabled=true;
   if(status) status.textContent='';
-  setTimeout(()=>{
+  loginTeaTimer=setTimeout(()=>{
    if(screen) screen.classList.add('loading-tea');
    if(card) card.classList.remove('login-submitting');
    if(card) card.classList.add('tea-loading');
   },780);
   init({deferReveal:true,minDelay:3600});
 }
+function normalizeAdminData(data){
+ const safe=data&&typeof data==='object'?data:{};
+ return {
+  ...safe,
+  settingsRows:Array.isArray(safe.settingsRows)?safe.settingsRows:[],
+  settings:safe.settings&&typeof safe.settings==='object'?safe.settings:{},
+  categories:Array.isArray(safe.categories)?safe.categories:[],
+  products:Array.isArray(safe.products)?safe.products:[],
+  posts:Array.isArray(safe.posts)?safe.posts:[],
+  testimonials:Array.isArray(safe.testimonials)?safe.testimonials:[],
+  subscriptions:Array.isArray(safe.subscriptions)?safe.subscriptions:[]
+ };
+}
+function resetLoginLoading(message){
+ clearTimeout(loginTeaTimer);
+ const screen=$('#loginScreen'), card=$('#loginCard'), btn=$('#loginButton'), status=$('#loginStatus');
+ if(screen) screen.classList.remove('loading-tea','login-exit');
+ if(card) card.classList.remove('tea-loading','login-submitting');
+ if(btn) btn.disabled=false;
+ if(status) status.textContent=message||'Não foi possível abrir o painel. Tente novamente.';
+}
 function init(options={}){
  const deferReveal=!!options.deferReveal;
  const minDelay=Number(options.minDelay)||0;
  const started=performance.now();
+ const requestId=++panelLoadSequence;
+ let settled=false;
  const loading=$('#loading');
  if(loading&&!deferReveal){loading.classList.remove('hidden');loading.innerHTML='<h2>Carregando painel...</h2><p class="muted">Aguarde enquanto buscamos os dados da planilha.</p>';}
+ const requestTimeout=setTimeout(()=>{
+  if(settled||requestId!==panelLoadSequence) return;
+  settled=true;
+  resetLoginLoading('O carregamento demorou mais que o esperado. Toque em Entrar para tentar novamente.');
+ },45000);
  google.script.run.withSuccessHandler(data=>{
-  DB=data;
+  if(settled||requestId!==panelLoadSequence) return;
+  settled=true;
+  clearTimeout(requestTimeout);
+  DB=normalizeAdminData(data);
   if(loading) loading.classList.add('hidden');
   $('#app').classList.remove('hidden');
   renderAll({animateNumbers:false});
   const reveal=()=>{
+   clearTimeout(loginTeaTimer);
    const screen=$('#loginScreen');
    if(screen) screen.classList.add('login-exit');
    setTimeout(()=>{
@@ -2390,22 +2447,23 @@ function init(options={}){
    setTimeout(()=>document.body.classList.remove('panel-entering'),2800);
   }
  }).withFailureHandler(e=>{
+  if(settled||requestId!==panelLoadSequence) return;
+  settled=true;
+  clearTimeout(requestTimeout);
   if(loading) loading.innerHTML='<h2>Erro ao carregar</h2><p>'+(e.message||e)+'</p>';
-  if(deferReveal){
-   const screen=$('#loginScreen'), card=$('#loginCard'), btn=$('#loginButton');
-   if(screen) screen.classList.remove('loading-tea','login-exit');
-   if(card) card.classList.remove('tea-loading','login-submitting');
-   if(btn) btn.disabled=false;
-  }
-  const status=$('#loginStatus');
-  if(status) status.textContent=e.message||String(e);
+  if(deferReveal) resetLoginLoading(e.message||String(e));
  }).getAdminData();
 }
 function renderAll(options={}){
  $('#countProducts').textContent=DB.products.length; $('#countPosts').textContent=DB.posts.length; $('#countSubscriptions').textContent=(DB.subscriptions||[]).length;
  if(options.animateNumbers!==false) animateDashboardNumbers();
  else { $('#mProducts').textContent='0'; $('#mPosts').textContent='0'; $('#mTestimonials').textContent='0'; $('#mSubscriptions').textContent='0'; }
- renderAdminAccess(); renderSettings(); renderProducts(); renderPosts(); renderTestimonials(); renderCategories(); renderSubscriptions();
+ const failures=[];
+ [
+  ['acessos',renderAdminAccess],['dados gerais',renderSettings],['produtos',renderProducts],
+  ['blog',renderPosts],['depoimentos',renderTestimonials],['categorias',renderCategories],['inscrições',renderSubscriptions]
+ ].forEach(([name,render])=>{try{render()}catch(error){failures.push(name);console.error('Falha ao renderizar '+name,error)}});
+ if(failures.length) setTimeout(()=>toast('O painel abriu, mas não foi possível montar: '+failures.join(', ')+'.'),900);
 }
 function animateDashboardNumbers(){
  animateNumber($('#mProducts'),DB.products.length,1650); animateNumber($('#mPosts'),DB.posts.length,1650); animateNumber($('#mTestimonials'),DB.testimonials.length,1650); animateNumber($('#mSubscriptions'),(DB.subscriptions||[]).length,1650);
@@ -2444,7 +2502,7 @@ const ADMIN_ACCESS_KEY='allowed_admin_emails';
 function adminAccessRow(){ return (DB.settingsRows||[]).find(r=>r.key===ADMIN_ACCESS_KEY)||{key:ADMIN_ACCESS_KEY,label:'E-mails autorizados no painel',value:'',type:'text',help:'Controle interno do painel; nao aparece no site publico.',active:true}; }
 function publicSettingsRows(){ return (DB.settingsRows||[]).map((r,i)=>({...r,_index:i})).filter(r=>r.key!==ADMIN_ACCESS_KEY); }
 function rowsWithAdminAccess(value){ let found=false; const rows=(DB.settingsRows||[]).map(r=>{ if(r.key===ADMIN_ACCESS_KEY){ found=true; return {...r,value,active:true}; } return r; }); if(!found) rows.unshift({...adminAccessRow(),value,active:true}); return rows; }
-function uploadInput(label,current){ const id='file_'+Math.random().toString(36).slice(2); return `<label>${label}</label><input type="text" data-image-url value="${esc(current||'')}" placeholder="URL da imagem"><div class="actions"><input id="${id}" type="file" accept="image/*" style="max-width:280px"><button class="btn secondary small" type="button" onclick="uploadFromInput('${id}', this)">Enviar imagem</button></div>${current?`<img class="preview" src="${esc(imgSrc(current))}">`:''}`; }
+function uploadInput(label,current){ const id='file_'+Math.random().toString(36).slice(2); return `<div class="image-upload-control">${label?`<label>${label}</label>`:''}<input class="image-url-input" type="text" data-image-url value="${esc(current||'')}" placeholder="Cole uma URL ou envie um arquivo"><div class="image-upload-actions"><input class="image-file-input" id="${id}" type="file" accept="image/*"><button class="btn secondary small" type="button" onclick="uploadFromInput('${id}', this)">Enviar imagem</button></div>${current?`<img class="preview" src="${esc(imgSrc(current))}" alt="Prévia da imagem">`:''}</div>`; }
 function uploadFromInput(id,btn){ const inp=document.getElementById(id); if(!inp.files.length) return toast('Escolha uma imagem.'); const file=inp.files[0]; const reader=new FileReader(); btn.textContent='Enviando...'; reader.onload=()=>{ google.script.run.withSuccessHandler(res=>{ const box=btn.closest('.field')||btn.parentElement.parentElement; const target=box.querySelector('[data-image-url]'); target.value=res.url; let img=box.querySelector('img.preview'); if(!img){img=document.createElement('img');img.className='preview';box.appendChild(img)} img.src=imgSrc(res.url); btn.textContent='Enviar imagem'; toast('Imagem enviada para o Drive.'); }).withFailureHandler(e=>{btn.textContent='Enviar imagem';toast(e.message||e)}).uploadImage({name:file.name,mimeType:file.type,data:reader.result}); }; reader.readAsDataURL(file); }
 function normalizedAdminEmails(value){ return [...new Set(String(value||'').split(/[\n,;]+/).map(v=>v.trim().toLowerCase()).filter(Boolean))]; }
 function renderAdminAccess(){ const box=$('#adminAccessPanel'); if(!box) return; const emails=normalizedAdminEmails(adminAccessRow().value||''); box.innerHTML=`<div class="access-compact"><div><h3>Acessos do painel</h3><p>${emails.length?`${emails.length} acesso${emails.length>1?'s':''} cadastrado${emails.length>1?'s':''}.`:'Cadastre e revogue acessos do ADM.'}</p></div><button class="btn secondary small" type="button" onclick="openAdminAccessModal()">Gerir acessos</button></div>`; }
@@ -2537,12 +2595,12 @@ function renderPosts(){
 function postForm(p={}){ $('#postEditor').classList.remove('hidden'); $('#postEditor').innerHTML=`<div class="editor-shell"><header class="editor-top"><div><p class="eyebrow">Blog</p><h2>${p.id?'Editar artigo':'Novo artigo'}</h2></div></header><section class="editor-section"><div class="editor-section-title"><h3>Identificação</h3><p>O título e o endereço usado para abrir o artigo.</p></div><div class="grid"><div class="field"><label>Título do artigo</label><input id="b_title" value="${esc(p.title||'')}" placeholder="Título claro e convidativo"></div><div class="field"><label>ID / endereço amigável</label><input id="b_id" value="${esc(p.id||'')}" placeholder="Gerado automaticamente"></div></div></section><section class="editor-section"><div class="editor-section-title"><h3>Chamada</h3><p>Texto curto que aparece nos cards do blog.</p></div><div class="field"><label>Resumo</label><textarea id="b_excerpt" placeholder="Uma ou duas frases para apresentar o conteúdo">${esc(p.excerpt||'')}</textarea></div></section><section class="editor-section"><div class="editor-section-title"><h3>Conteúdo</h3><p>Use títulos com ## e listas com hífen para organizar a leitura.</p></div><div class="field"><label>Texto completo do artigo</label><textarea id="b_body" style="min-height:320px" placeholder="## Primeiro subtítulo\n\nEscreva o conteúdo aqui...">${esc(p.body||'')}</textarea></div></section><section class="editor-section"><div class="editor-section-title"><h3>Imagem de capa</h3><p>Ela será o principal elemento visual do card.</p></div><div class="field">${uploadInput('Imagem de capa',p.cover_url)}</div></section><section class="editor-section"><div class="editor-section-title"><h3>Publicação</h3><p>Artigos não publicados ficam guardados como rascunho.</p></div><label class="choice-card"><input id="b_published" type="checkbox" ${p.published===false||String(p.published)==='false'?'':'checked'}> Publicar artigo no site</label></section><footer class="editor-footer"><button class="btn" onclick="savePostUI()">Salvar artigo</button><button class="btn secondary" onclick="closeEditor('postEditor')">Cancelar</button></footer></div>`; openEditor('postEditor');}
 function newPost(){postForm({published:true})} function editPost(id){const item=DB.posts.find(p=>String(p.id)===String(id)); if(!item) return toast('Artigo não encontrado no painel.'); postForm(item)} function hidePost(id){if(confirm('Ocultar este artigo?')) google.script.run.withSuccessHandler(init).deletePost(id)}
 function savePostUI(){ const title=val('b_title'); const item={id:val('b_id')||slug(title),title,excerpt:val('b_excerpt'),body:val('b_body'),cover_url:document.querySelector('#postEditor [data-image-url]').value,published:checked('b_published'),order:99}; google.script.run.withSuccessHandler(()=>{toast('Artigo salvo.');closeEditor('postEditor');init();}).withFailureHandler(e=>toast(e.message||e)).savePost(item); }
-function renderTestimonials(){ $('#testimonialsList').innerHTML=DB.testimonials.map(t=>`<div class="row"><img src="${esc(imgSrc(t.photo_url))}"><div><h3>${esc(t.name)}</h3><p>${esc(t.text)}</p></div><div class="actions"><button class="btn small" onclick="editTestimonial('${esc(t.id)}')">Editar</button><button class="btn danger small" onclick="hideTestimonial('${esc(t.id)}')">Ocultar</button></div></div>`).join(''); }
-function testimonialForm(t={}){ $('#testimonialEditor').classList.remove('hidden'); $('#testimonialEditor').innerHTML=`<h2>${t.id?'Editar depoimento':'Novo depoimento'}</h2><div class="grid"><div class="field"><label>Nome</label><input id="t_name" value="${esc(t.name||'')}"></div><div class="field"><label>ID</label><input id="t_id" value="${esc(t.id||'')}"></div></div><div class="field"><label>Texto</label><textarea id="t_text">${esc(t.text||'')}</textarea></div><div class="grid"><div class="field"><label>Avaliação</label><input id="t_rating" type="number" min="1" max="5" value="${esc(t.rating||5)}"></div><div class="field">${uploadInput('Foto',t.photo_url)}</div></div><div class="actions"><label><input id="t_active" type="checkbox" ${t.active===false||String(t.active)==='false'?'':'checked'}> ativo</label><button class="btn" onclick="saveTestimonialUI()">Salvar depoimento</button><button class="btn secondary" onclick="closeEditor('testimonialEditor')">Cancelar</button></div>`; openEditor('testimonialEditor');}
+function renderTestimonials(){ $('#testimonialsList').innerHTML=DB.testimonials.length?`<div class="collection-grid manage-grid">${DB.testimonials.map(t=>`<article class="content-card manage-card testimonial-admin-card"><div class="manage-card-visual"><img src="${esc(imgSrc(t.photo_url)||imgSrc('assets/img/site/logo.png'))}" alt="Foto de ${esc(t.name)}"></div><div class="content-card-body"><div class="content-card-meta"><span class="state-dot ${isOn(t.active)?'on':''}">${isOn(t.active)?'Visível no site':'Oculto'}</span><span class="badge">${esc(t.rating||5)}/5</span></div><h3>${esc(t.name)}</h3><p class="card-description">${esc(t.text||'Sem depoimento cadastrado.')}</p></div><div class="content-card-actions"><button class="post-edit-btn" type="button" onclick="editTestimonial('${esc(t.id)}')">Editar depoimento</button><button class="post-more-btn" type="button" onclick="hideTestimonial('${esc(t.id)}')" aria-label="Ocultar ${esc(t.name)}" title="Ocultar depoimento">•••</button></div></article>`).join('')}</div>`:'<div class="notice">Nenhum depoimento cadastrado.</div>'; }
+function testimonialForm(t={}){ $('#testimonialEditor').classList.remove('hidden'); $('#testimonialEditor').innerHTML=`<div class="editor-shell"><header class="editor-top"><div><p class="eyebrow">Prova social</p><h2>${t.id?'Editar depoimento':'Novo depoimento'}</h2></div></header><section class="editor-section"><div class="editor-section-title"><h3>Identificação</h3><p>Informe quem enviou o depoimento e o código usado internamente.</p></div><div class="grid"><div class="field"><label>Nome da pessoa</label><input id="t_name" value="${esc(t.name||'')}" placeholder="Ex.: Maria Silva"></div><div class="field"><label>ID / endereço amigável</label><input id="t_id" value="${esc(t.id||'')}" placeholder="Gerado automaticamente"></div></div></section><section class="editor-section"><div class="editor-section-title"><h3>Depoimento</h3><p>Mantenha o texto claro e fiel ao relato da cliente.</p></div><div class="field"><label>Texto do depoimento</label><textarea id="t_text" placeholder="Escreva o depoimento completo">${esc(t.text||'')}</textarea></div><div class="field compact-field"><label>Avaliação</label><select id="t_rating">${[5,4,3,2,1].map(n=>`<option value="${n}" ${Number(t.rating||5)===n?'selected':''}>${n} de 5</option>`).join('')}</select></div></section><section class="editor-section"><div class="editor-section-title"><h3>Foto</h3><p>Use uma imagem quadrada e bem iluminada; o painel ajusta o recorte.</p></div><div class="field">${uploadInput('Foto da pessoa',t.photo_url)}</div></section><section class="editor-section"><div class="editor-section-title"><h3>Publicação</h3><p>Depoimentos ocultos continuam salvos, mas não aparecem no site.</p></div><label class="choice-card"><input id="t_active" type="checkbox" ${t.active===false||String(t.active)==='false'?'':'checked'}> Mostrar depoimento no site</label></section><footer class="editor-footer"><button class="btn" type="button" onclick="saveTestimonialUI()">Salvar depoimento</button><button class="btn secondary" type="button" onclick="closeEditor('testimonialEditor')">Cancelar</button></footer></div>`; openEditor('testimonialEditor');}
 function newTestimonial(){testimonialForm({active:true,rating:5})} function editTestimonial(id){const item=DB.testimonials.find(t=>String(t.id)===String(id)); if(!item) return toast('Depoimento não encontrado no painel.'); testimonialForm(item)} function hideTestimonial(id){if(confirm('Ocultar este depoimento?')) google.script.run.withSuccessHandler(init).deleteTestimonial(id)}
 function saveTestimonialUI(){ const name=val('t_name'); const item={id:val('t_id')||slug(name),name,text:val('t_text'),photo_url:document.querySelector('#testimonialEditor [data-image-url]').value,rating:val('t_rating'),active:checked('t_active'),order:99}; google.script.run.withSuccessHandler(()=>{toast('Depoimento salvo.');closeEditor('testimonialEditor');init();}).withFailureHandler(e=>toast(e.message||e)).saveTestimonial(item); }
-function renderCategories(){ $('#categoriesList').innerHTML=DB.categories.map(c=>`<div class="row"><img src="${esc(categoryImg(c))}" data-category-id="${esc(c.id)}" onerror="categoryFallback(this)"><div><h3>${esc(c.name)}</h3><p>${esc(c.description)}</p><p>${isOn(c.active)?'Ativa':'Oculta'}</p></div><div class="actions"><button class="btn small" onclick="editCategory('${esc(c.id)}')">Editar</button></div></div>`).join(''); }
-function categoryForm(c={}){ $('#categoryEditor').classList.remove('hidden'); $('#categoryEditor').innerHTML=`<h2>${c.id?'Editar categoria':'Nova categoria'}</h2><div class="grid"><div class="field"><label>Nome</label><input id="c_name" value="${esc(c.name||'')}"></div><div class="field"><label>ID</label><input id="c_id" value="${esc(c.id||'')}"></div><div class="field"><label>Ordem</label><input id="c_order" type="number" value="${esc(c.order||'99')}"></div></div><div class="field"><label>Descrição</label><textarea id="c_description">${esc(c.description||'')}</textarea></div><div class="field">${uploadInput('Imagem de destaque',c.image_url)}</div><div class="actions"><label><input id="c_active" type="checkbox" ${c.active===false||String(c.active)==='false'?'':'checked'}> ativa no site</label></div><div class="actions"><button class="btn" onclick="saveCategoryUI()">Salvar categoria</button><button class="btn secondary" onclick="closeEditor('categoryEditor')">Cancelar</button></div>`; openEditor('categoryEditor'); }
+function renderCategories(){ $('#categoriesList').innerHTML=DB.categories.length?`<div class="collection-grid manage-grid">${DB.categories.map(c=>`<article class="content-card manage-card category-admin-card"><div class="manage-card-visual"><img src="${esc(categoryImg(c))}" data-category-id="${esc(c.id)}" alt="Ícone de ${esc(c.name)}" onerror="categoryFallback(this)"></div><div class="content-card-body"><div class="content-card-meta"><span class="state-dot ${isOn(c.active)?'on':''}">${isOn(c.active)?'Visível no site':'Oculta'}</span><span class="badge">Ordem ${esc(c.order||99)}</span></div><h3>${esc(c.name)}</h3><p class="card-description">${esc(c.description||'Sem descrição cadastrada.')}</p></div><div class="content-card-actions"><button class="post-edit-btn" type="button" onclick="editCategory('${esc(c.id)}')">Editar categoria</button></div></article>`).join('')}</div>`:'<div class="notice">Nenhuma categoria cadastrada.</div>'; }
+function categoryForm(c={}){ $('#categoryEditor').classList.remove('hidden'); $('#categoryEditor').innerHTML=`<div class="editor-shell"><header class="editor-top"><div><p class="eyebrow">Organização</p><h2>${c.id?'Editar categoria':'Nova categoria'}</h2></div></header><section class="editor-section"><div class="editor-section-title"><h3>Identificação</h3><p>Nome, código interno e posição usada para ordenar a categoria.</p></div><div class="grid"><div class="field"><label>Nome da categoria</label><input id="c_name" value="${esc(c.name||'')}" placeholder="Ex.: Chás naturais"></div><div class="field"><label>ID / endereço amigável</label><input id="c_id" value="${esc(c.id||'')}" placeholder="Gerado automaticamente"></div><div class="field compact-field"><label>Ordem de exibição</label><input id="c_order" type="number" value="${esc(c.order||'99')}"></div></div></section><section class="editor-section"><div class="editor-section-title"><h3>Apresentação</h3><p>Este texto ajuda a cliente a entender quais produtos pertencem ao grupo.</p></div><div class="field"><label>Descrição da categoria</label><textarea id="c_description" placeholder="Escreva uma descrição curta e objetiva">${esc(c.description||'')}</textarea></div></section><section class="editor-section"><div class="editor-section-title"><h3>Identidade visual</h3><p>Use o ícone próprio da categoria, preferencialmente com fundo transparente.</p></div><div class="field">${uploadInput('Ícone ou imagem da categoria',c.image_url)}</div></section><section class="editor-section"><div class="editor-section-title"><h3>Publicação</h3><p>Ao ocultar, a categoria deixa de aparecer nas áreas públicas do site.</p></div><label class="choice-card"><input id="c_active" type="checkbox" ${c.active===false||String(c.active)==='false'?'':'checked'}> Mostrar categoria no site</label></section><footer class="editor-footer"><button class="btn" type="button" onclick="saveCategoryUI()">Salvar categoria</button><button class="btn secondary" type="button" onclick="closeEditor('categoryEditor')">Cancelar</button></footer></div>`; openEditor('categoryEditor'); }
 function newCategory(){categoryForm({active:true})}
 function editCategory(id){const item=DB.categories.find(x=>String(x.id)===String(id)); if(!item) return toast('Categoria não encontrada no painel.'); categoryForm(item)}
 function saveCategoryUI(){ const name=val('c_name'); const item={id:val('c_id')||slug(name),name,description:val('c_description'),image_url:document.querySelector('#categoryEditor [data-image-url]').value,active:checked('c_active'),order:val('c_order')}; google.script.run.withSuccessHandler(()=>{toast('Categoria salva.');closeEditor('categoryEditor');init();}).withFailureHandler(e=>toast(e.message||e)).saveCategory(item); }

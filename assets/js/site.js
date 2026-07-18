@@ -215,26 +215,41 @@ function setupNewsletterForms(){
   const input=form.querySelector('input[type="email"],input');
   const button=form.querySelector('button');
   let msg=form.querySelector('.newsletter-msg');
-  if(!msg){msg=document.createElement('p');msg.className='newsletter-msg';form.appendChild(msg)}
-  form.addEventListener('submit',e=>e.preventDefault());
+  if(!msg){msg=document.createElement('p');msg.className='newsletter-msg';msg.setAttribute('role','status');msg.setAttribute('aria-live','polite');form.appendChild(msg)}
   if(button) button.type='submit';
   if(input) input.setAttribute('autocomplete','email');
+  const showFeedback=(message,isError=false)=>{
+   clearTimeout(form._newsletterResetTimer);
+   msg.textContent=message;
+   msg.classList.toggle('error',isError);
+   form.classList.add('is-feedback');
+   form._newsletterResetTimer=setTimeout(()=>{
+    form.classList.remove('is-feedback');
+    msg.classList.remove('error');
+    msg.textContent='';
+    if(!isError&&input&&matchMedia('(pointer:fine)').matches) input.focus({preventScroll:true});
+   },4200);
+  };
   form.onsubmit=async e=>{
    e.preventDefault();
    const email=(input&&input.value||'').trim();
-   msg.textContent='Enviando...';
+   clearTimeout(form._newsletterResetTimer);
+   form.classList.remove('is-feedback');
+   msg.textContent='';
    msg.classList.remove('error');
+   form.setAttribute('aria-busy','true');
    if(button){button.disabled=true;button.textContent='Enviando...';}
    try{
-    if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new Error('Informe um e-mail valido.');
+    if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new Error('Informe um e-mail válido.');
     const res=await callAppsScript('subscribe',{email,source:'newsletter'});
-    if(!res||!res.ok) throw new Error(res&&res.message||'Nao foi possivel cadastrar.');
-    msg.textContent=res.duplicate?'Este e-mail ja esta cadastrado.':'E-mail cadastrado com sucesso.';
-    if(input&&!res.duplicate) input.value='';
+    if(!res||!res.ok) throw new Error(res&&res.message||'Não foi possível fazer o cadastro.');
+    form.reset();
+    if(input) input.value='';
+    showFeedback('Cadastro feito. Você receberá nossas novidades em seu e-mail.');
    }catch(err){
-    msg.textContent=err.message||String(err);
-    msg.classList.add('error');
+    showFeedback(err.message||String(err),true);
    }finally{
+    form.removeAttribute('aria-busy');
     if(button){button.disabled=false;button.textContent='Enviar';}
    }
   };

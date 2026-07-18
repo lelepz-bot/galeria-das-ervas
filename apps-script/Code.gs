@@ -97,7 +97,7 @@ function getPublicData() {
 function getAdminData() {
   const access = adminGuard_();
   const ss = getDb_();
-  return {
+  const data = {
     ok: true,
     adminAccess: access,
     spreadsheetUrl: ss.getUrl(),
@@ -110,6 +110,10 @@ function getAdminData() {
     testimonials: readRows_(ss.getSheetByName(APP.sheets.testimonials)),
     subscriptions: readRows_(ss.getSheetByName(APP.sheets.subscriptions)).sort((a,b)=>new Date(b.created_at)-new Date(a.created_at))
   };
+  // google.script.run não aceita Date dentro do objeto retornado. A primeira
+  // inscrição cria justamente uma data real na planilha; sem esta conversão,
+  // o painel deixa de abrir assim que a lista de inscrições deixa de estar vazia.
+  return JSON.parse(JSON.stringify(data));
 }
 
 function subscribe_(e) {
@@ -140,9 +144,9 @@ function saveSubscription(email, source) {
     const rows = readRows_(sh);
     const existing = rows.find(r => String(r.email || '').trim().toLowerCase() === email);
     const now = new Date();
-    if (existing) return {ok: true, duplicate: true, message: 'E-mail já cadastrado.'};
+    if (existing) return {ok: true, duplicate: true, message: 'Cadastro feito. Você receberá nossas novidades em seu e-mail.'};
     sh.appendRow([Utilities.getUuid(), now, email, source, '']);
-    return {ok: true, duplicate: false, message: 'Inscrição cadastrada.'};
+    return {ok: true, duplicate: false, message: 'Cadastro feito. Você receberá nossas novidades em seu e-mail.'};
   } finally {
     lock.releaseLock();
   }
